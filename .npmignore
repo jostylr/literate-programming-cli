@@ -1,0 +1,5 @@
+tests
+test.js
+travis.yml
+node_modules
+*.md
