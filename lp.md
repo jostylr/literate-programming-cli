@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.1.0")
+# [literate-programming-cli](# "version:0.1.1")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -19,6 +19,22 @@ literate-programming-lib.
 
 ## Cli 
 
+This is the command line client for literate programming. This contains all
+the options for command line processing, but it comes without the standard
+library of plugins. See plugins for how we deal with them.
+
+It has different modes. The default is to take in one or more literate program
+files and compile them, doing whatever they say to do, typically saving them.
+There are options to specify the build and source directories. The defaults
+are `./build` and `./src`, respectively, if they are present. If not present,
+then the default is the directory where it is called. A root direcory can also
+be specified that will change the current working directory first before doing
+anything else. 
+
+The other modes are preview and diff, both of which will not save over any
+files.  
+
+
     #!/usr/bin/env node
 
     /*global process, require, console*/
@@ -28,11 +44,18 @@ literate-programming-lib.
     var opts = require("nomnom").
         option('file', {
             abbr : "f",
-            
+            default : [],
             position : 0,
             list : true,
             help : "Literate programs to compile"
         }).
+        option('test',  {
+            help : "testing"
+        }).
+        option('test', {
+            help : "test 2"
+        }).
+        script("litpro").
         parse();
 
 
@@ -76,6 +99,17 @@ literate-programming-lib.
         //console.log(folder.scopes);
         //console.log(gcd.log.logs().join('\n')); 
     });
+
+
+
+## Plugins
+
+It will, however, starting with the current working directory (where the
+command was issued), search out for either `lprc.js` or `node_modules`,
+respectively per level up the heirarchy. This will load the plugins in lprc.js
+or it will load `litpro-` modules automatically. Failing to find any of these
+things, it will then look at the environment for a litpro entry pointing to a
+js file. 
 
 
 
@@ -519,7 +553,7 @@ The requisite npm package file.
       },
       "dependencies":{
           "nomnom": "^1.8.1",
-          "literate-programming-lib" : "^1.0.2"
+          "literate-programming-lib" : "^1.0.3"
       },
       "devDependencies" : {
       },

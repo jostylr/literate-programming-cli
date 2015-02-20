@@ -6,11 +6,18 @@
 var opts = require("nomnom").
     option('file', {
         abbr : "f",
-        
+        default : [],
         position : 0,
         list : true,
         help : "Literate programs to compile"
     }).
+    option('test',  {
+        help : "testing"
+    }).
+    option('test', {
+        help : "test 2"
+    }).
+    script("litpro").
     parse();
 
 var fs = require('fs');
