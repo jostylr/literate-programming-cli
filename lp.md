@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.1.1")
+# [literate-programming-cli](# "version:0.2.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -40,65 +40,205 @@ files.
     /*global process, require, console*/
     /*jslint evil:true*/
 
+    var fs = require('fs');
+    var Folder = require('literate-programming-lib');
+
+    _"preload"
+    
+    _"encodings"
+
 
     var opts = require("nomnom").
-        option('file', {
-            abbr : "f",
-            default : [],
-            position : 0,
-            list : true,
-            help : "Literate programs to compile"
-        }).
-        option('test',  {
-            help : "testing"
-        }).
-        option('test', {
-            help : "test 2"
-        }).
-        script("litpro").
-        parse();
+        options(_"cli options").
+        script("litpro");
+
+    _"lprc"
 
 
-    var fs = require('fs');
-    var LitPro = require('literate-programming-lib');
-    var folder = new LitPro();
-    var gcd = folder.gcd;
-    var colon = folder.colon;
+    var args = opts.parse(); 
 
-    gcd.on("need document", function (data, evObj) {
-        var rawname = evObj.pieces[0];
-        var safename = colon.escape(rawname);
-        fs.readFile(rawname, {encoding:'utf8'},  function (err, text) {
-            if (err) {
-                gcd.emit("error:file not found:" + safename);
-            } else{
-                folder.newdoc(safename, text);
-            }
-        });
-    });
+    var folder = new Folder();
 
-    gcd.on("file ready", function(text, evObj) {
-        var filename = evObj.pieces[0]; 
-        fs.writeFile(filename, text);
-        console.log("File " + filename + " saved");
-    });
-
-    //gcd.makeLog();
-
-    var i, n = opts.file.length;
-    for (i = 0; i < n; i += 1) {
-        gcd.emit("need document:" +  opts.file[i]);
-    }
+    folder.process(args);
 
 
     process.on('exit', function () {
+        folder.exit();
+    });
+
+
+## Preload
+
+We can prep the Folder object first and then later we will load the plugin stuff
+that may want to modify these things. 
+ 
+Actions pertain to gcd stuff. We can setup things before and it will get
+applied. postInit takes the instance folder and allows one last bit of
+something. For example, we could enable logging with the gcd. 
+
+
+
+    Folder.actions = _"actions";
+    
+    Folder.prototype.encoding = "utf8";
+
+    Folder.prototype.exit = _":exit";
+
+    Folder.prototype.process = _":process";
+
+    
+[exit]()
+
+The function to run on exiting. 
+
+    function () {
+        var folder = this;
         var arr = folder.reportwaits();
         if ( arr.length) {
             console.log(arr.join("\n"));
+        } else {
+            console.log("It looks good!");
         }
+
+        //console.log(folder, folder.gcd);
+        
         //console.log(folder.scopes);
         //console.log(gcd.log.logs().join('\n')); 
-    });
+    }
+
+
+[process]()
+
+This is what happens after all the initiation and parsing of cli options. It
+actually initiates the compiling. It receives the parsed arguments. 
+
+    function (args) {
+        var folder = this;
+        var gcd = folder.gcd;
+        var colon = folder.colon;
+        var emitname;
+
+        var i, n = args.file.length;
+        for (i = 0; i < n; i += 1) {
+            emitname = colon.escape(args.file[i]);
+            gcd.emit("need document:" +  emitname);
+        }
+    
+    }
+
+    
+
+## Actions    
+
+We have two basic actions, one for getting a requested document and one for
+saving one. 
+
+    {"on" : [
+        ["need document", "read file"],
+        ["file ready", "save file"] ],
+     "action" : [
+        ["read file", function (data, evObj) {
+            var gcd = evObj.emitter;
+            var folder = gcd.parent;
+            var colon = folder.colon;
+            var emitname = evObj.pieces[0];
+            var filename = colon.restore(emitname);
+            console.log(filename, emitname);
+            var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+            fs.readFile(filename, {encoding:encoding},  function (err, text) {
+                if (err) {
+                    gcd.emit("error:file not found:" + emitname);
+                } else{
+                    folder.newdoc(emitname, text);
+                }
+            });
+        }], 
+        ["save file",  function(text, evObj) {
+            var gcd = evObj.emitter;
+            var folder = gcd.parent;
+            var colon = folder.colon;
+            var emitname = evObj.pieces[0];
+            var filename = colon.restore(emitname);
+            var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+            fs.writeFile(filename, text, {encoding:encoding},  function (err) {
+                if (err) {
+                    gcd.emit("error:file not saveable:" + emitname);
+                } else{
+                    console.log("File " + filename + " saved");
+                }
+            });
+        }]]
+    }
+
+
+      
+## Encodings
+
+This enables us to read files of various different encodings. We use
+iconv-lite. 
+
+    var iconv = require('iconv-lite'); 
+    iconv.extendNodeEncodings();
+ 
+This should turn read and write files into wonderful manifold encodings. 
+
+[option]() 
+
+    { 
+        abbr : "e",
+        default : "utf8",
+        help : "default encoding to use. Defaults to utf8",
+        callback : function (enc) {
+            if (iconv.encodingExists(enc) ) {
+                Folder.prototype.encoding = enc;
+            } else {
+                return "Bad encoding. Please check iconv.lite's list of encodings.";
+            }
+        }
+    }
+
+
+## CLI Options
+
+Here are the options for the nomnom parser. These get loaded first and then the
+plugins can act on the parsr as a second argument. The plugins should be able
+to overwrite whatever they like in it though ideally they play nice. 
+
+    {
+        "file": {
+            abbr : "f",
+            "default" : [],
+            position : 0,
+            list : true,
+        }, 
+        "encoding" : _"encodings:option"
+    }
+
+    
+
+## LPRC
+
+The plugins are managed by a lprc.js or by scanning `node_modules`. For now,
+we will simply load a lprc.js file in the current working directory. In the
+future, we will scan upwards. 
+
+The lprc.js file should return a function which is also what plugins should
+do. They modify properties on Folder, namely commands, directives, and
+actions. Actions are the gcd events that get applied upon folder creation.  
+
+This will do more searching and alternatives later.
+
+Modifying Folder.postInit allows for a function to process `this` on
+instantiation. 
+
+
+    try {
+        require('./lprc.js')(Folder);
+    } catch (e) {
+        console.log(e);
+    }
+   
+
 
 
 
@@ -518,6 +658,18 @@ If you want a global install so that you just need to write `litpro` then use
 
 ## TODO
 
+preview, diff command mode
+
+build, src
+
+extensions
+
+readfile, directory, writefile commands for use from a litpro doc.
+
+maybe a built in watcher program, using nodemon?  
+command line: read file, readdir, write file, file encodings, curling, creating subdir — init stuff
+
+plugins: version--npm stuff, jshint, jstidy, jade, markdown, 
 
 ## NPM package
 
@@ -553,7 +705,8 @@ The requisite npm package file.
       },
       "dependencies":{
           "nomnom": "^1.8.1",
-          "literate-programming-lib" : "^1.0.3"
+          "literate-programming-lib" : "^1.2.1",
+          "iconv-lite" : "^0.4.7"
       },
       "devDependencies" : {
       },

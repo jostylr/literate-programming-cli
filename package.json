@@ -1,7 +1,7 @@
 {
   "name": "literate-programming-cli",
   "description": "A literate programming compile script. Write your program in markdown.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "homepage": "https://github.com/jostylr/literate-programming-cli",
   "author": {
     "name": "James Taylor",
@@ -26,7 +26,8 @@
   },
   "dependencies":{
       "nomnom": "^1.8.1",
-      "literate-programming-lib" : "^1.0.3"
+      "literate-programming-lib" : "^1.2.1",
+      "iconv-lite" : "^0.4.7"
   },
   "devDependencies" : {
   },
