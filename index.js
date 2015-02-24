@@ -7,7 +7,6 @@ var Folder = require('literate-programming-lib');
 var mkdirp = require('mkdirp');
 
 var root = process.cwd();
-var build, src, cache;
 
 var loader =  function (data, evObj, src) {
         var gcd = evObj.emitter;
@@ -44,13 +43,16 @@ Folder.actions = {"on" : [
             var colon = folder.colon;
             var emitname = evObj.pieces[0];
             var filename = colon.restore(emitname);
+            var firstpart = filename.split(sep).slice(0, -1).join(sep);
             var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
             var fpath = folder.build;
-            var fullname = fpath + sep + filename;
+            var fullname = fpath + sep + filename; 
+            fpath = fpath + (firstpart ? sep + firstpart : "");
             fs.writeFile(fullname, text, 
                 {encoding:encoding},  function (err) {
                 if (err) {
                     mkdirp(fpath, function (err) {
+                        console.log(fpath);
                         if (err) {
                             gcd.emit("error:directory not makeable", fpath);
                         } else {
