@@ -1,13 +1,24 @@
-# [literate-programming-cli](# "version:0.2.0")
+# [literate-programming-cli](# "version:0.2.1")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
 
 
+At the moment, at least, I am of the firm opinion that one should structure a
+litpro directory as cache, build, src, lprc.js  as where you start. These
+locations can be changed in the command line, but the idea is that you are at
+the top, it all goes down. 
+
+Any initially given filenames are read as is. This allows for shell
+completion. It is a little odd in that command line is non-prefixed while
+loading from within doc is prefixed. One can also specify starting files in
+lprc.js by modifying args.files. 
 
 ## Directory structure
 
-* [index.js](#cli "save: | jshint") The literate program compiler is activated by a command line program.
+* [litpro.js](#cli "save: | jshint") The literate program compiler is activated by a command line program.
+* [index.js](#module "save: | jshint") This is the module which can then be
+  used for making further command line clients with other functionality. 
 * [README.md](#readme "save:| clean raw") The standard README.
 * [package.json](#npm-package "save: json  | jshint") The requisite package file for a npm project. 
 * [TODO.md](#todo "save: | clean raw") A list of growing and shrinking items todo.
@@ -38,33 +49,55 @@ files.
     #!/usr/bin/env node
 
     /*global process, require, console*/
-    /*jslint evil:true*/
+
+    var mod = require('./index.js');
+
+    var args = mod.opts.parse();
+
+    //console.log(args);
+
+    mod.Folder.lprc(args.lprc, args);
+
+    var folder = new mod.Folder();
+
+    folder.process(args);
+
+    process.on('exit', function () {
+        folder.exit();
+    });
+
+
+ 
+## Module
+
+This exports what is needed for the command client to use. 
+
+The directories are a bit tricky. 
+
+
+    /*global process, require, console, module*/
 
     var fs = require('fs');
+    var path = require('path');
+    var sep = path.sep;
     var Folder = require('literate-programming-lib');
+    var mkdirp = require('mkdirp');
+
+    var root = process.cwd();
+    var build, src, cache;
 
     _"preload"
     
     _"encodings"
 
-
     var opts = require("nomnom").
         options(_"cli options").
         script("litpro");
 
-    _"lprc"
+    Folder.lprc = _"lprc";
 
-
-    var args = opts.parse(); 
-
-    var folder = new Folder();
-
-    folder.process(args);
-
-
-    process.on('exit', function () {
-        folder.exit();
-    });
+    module.exports.Folder = Folder;
+    module.exports.opts = opts;
 
 
 ## Preload
@@ -78,6 +111,8 @@ something. For example, we could enable logging with the gcd.
 
 
 
+    var loader = _"actions:load file";
+
     Folder.actions = _"actions";
     
     Folder.prototype.encoding = "utf8";
@@ -85,6 +120,7 @@ something. For example, we could enable logging with the gcd.
     Folder.prototype.exit = _":exit";
 
     Folder.prototype.process = _":process";
+
 
     
 [exit]()
@@ -97,7 +133,7 @@ The function to run on exiting.
         if ( arr.length) {
             console.log(arr.join("\n"));
         } else {
-            console.log("It looks good!");
+            console.log("Nothing reports waiting.");
         }
 
         //console.log(folder, folder.gcd);
@@ -118,10 +154,14 @@ actually initiates the compiling. It receives the parsed arguments.
         var colon = folder.colon;
         var emitname;
 
+        folder.build = args.build;
+        folder.cache = args.cache;
+        folder.src = args.src;
+
         var i, n = args.file.length;
         for (i = 0; i < n; i += 1) {
             emitname = colon.escape(args.file[i]);
-            gcd.emit("need document:" +  emitname);
+            gcd.emit("initial document:" +  emitname);
         }
     
     }
@@ -134,25 +174,15 @@ We have two basic actions, one for getting a requested document and one for
 saving one. 
 
     {"on" : [
+        ["initial document", "read initial file"],
         ["need document", "read file"],
-        ["file ready", "save file"] ],
+        ["file ready", "save file"],
+        ["error", "report error"] ],
      "action" : [
-        ["read file", function (data, evObj) {
-            var gcd = evObj.emitter;
-            var folder = gcd.parent;
-            var colon = folder.colon;
-            var emitname = evObj.pieces[0];
-            var filename = colon.restore(emitname);
-            console.log(filename, emitname);
-            var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
-            fs.readFile(filename, {encoding:encoding},  function (err, text) {
-                if (err) {
-                    gcd.emit("error:file not found:" + emitname);
-                } else{
-                    folder.newdoc(emitname, text);
-                }
-            });
-        }], 
+        ["read initial file", function (data, evObj) {
+            loader(data, evObj, "");
+        }],
+        ["read file", loader], 
         ["save file",  function(text, evObj) {
             var gcd = evObj.emitter;
             var folder = gcd.parent;
@@ -160,17 +190,61 @@ saving one.
             var emitname = evObj.pieces[0];
             var filename = colon.restore(emitname);
             var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
-            fs.writeFile(filename, text, {encoding:encoding},  function (err) {
+            var fpath = folder.build;
+            var fullname = fpath + sep + filename;
+            fs.writeFile(fullname, text, 
+                {encoding:encoding},  function (err) {
                 if (err) {
-                    gcd.emit("error:file not saveable:" + emitname);
+                    _":mkdirp";
                 } else{
-                    console.log("File " + filename + " saved");
+                    console.log("File " + fullname + " saved");
                 }
             });
+        }],
+        ["report error", function (data, evObj) {
+            console.log(evObj.ev + (data ? " INFO: " + data : "") );
         }]]
     }
 
+[mkdirp]()
 
+This makes the directory if it does not exist. 
+
+    mkdirp(fpath, function (err) {
+        if (err) {
+            gcd.emit("error:directory not makeable", fpath);
+        } else {
+            fs.writeFile(fullname, text, 
+                {encoding:encoding},  function (err) {
+                    if (err) {
+                        gcd.emit("error:file not saveable",fullname);
+                    } else {
+                        console.log("File " + fullname + " saved");
+                    }
+                });
+        }
+    })
+
+
+[load file]() 
+
+     function (data, evObj, src) {
+            var gcd = evObj.emitter;
+            var folder = gcd.parent;
+            var colon = folder.colon;
+            var emitname = evObj.pieces[0];
+            var filename = colon.restore(emitname);
+            var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+            var fullname = ((typeof src === "string") ? src : folder.src + sep ) +
+                 filename;
+            fs.readFile( fullname, {encoding:encoding},  function (err, text) {
+                if (err) {
+                    gcd.emit("error:file not found:" + fullname);
+                } else {
+                    folder.newdoc(emitname, text);
+                }
+            });
+     }
       
 ## Encodings
 
@@ -207,13 +281,36 @@ to overwrite whatever they like in it though ideally they play nice.
     {
         "file": {
             abbr : "f",
-            "default" : [],
+            default : [],
             position : 0,
             list : true,
         }, 
-        "encoding" : _"encodings:option"
+        "encoding" : _"encodings:option",
+        _":dir",
+        "lprc": {
+            abbr : "l",
+            default : root + sep + "lprc.js",
+        }
+
     }
 
+
+[dir]()
+
+This sets up the default directories. 
+
+    build : {
+        abbr: "b",
+        default : root + sep + "build"
+    },
+    src : {
+        abbr: "s",
+        default : root + sep + "src"
+    },
+    cache : {
+        abbr : "c",
+        default : root + sep + "cache"
+    }
     
 
 ## LPRC
@@ -232,12 +329,18 @@ Modifying Folder.postInit allows for a function to process `this` on
 instantiation. 
 
 
-    try {
-        require('./lprc.js')(Folder);
-    } catch (e) {
-        console.log(e);
+    function (name, args) {
+        var Folder = this;
+
+        try {
+            require(name)(Folder, args);
+        } catch (e) {
+            
+        }
     }
    
+
+
 
 
 
@@ -252,51 +355,6 @@ things, it will then look at the environment for a litpro entry pointing to a
 js file. 
 
 
-
-[junk]()   
-        .option('debug', {
-          abbr: 'd',
-          flag: true,
-          help: 'Print debugging info'
-        })
-        .option('config', {
-          abbr: 'c',
-          default: 'config.json',
-          help: 'JSON file with tests to run'
-        })
-        .option('version', {
-          flag: true,
-          help: 'print version and exit',
-          callback: function() {
-             return "version 1.2.4";
-          }
-        })
-        .parse();
-
-
-    var fs = require('fs');
-    var LitPro = require('literate-programming-lib');
-    var folder = new Litpro();
-    var gcd = folder.gcd;
-    var colon = folder.colon;
-   
-    gcd.on("need document", function (rawname) {
-        var safename = colon.escape(rawname);
-        fs.readfile(rawname, {encoding:'utf8'},  function (err, text) {
-            if (err) {
-                gcd.emit("error:file not found:" + safename);
-            } else {
-                folder.newdoc(safename, text);
-            }
-        });
-    });
-
-    gcd.on("file ready", function(text, evObj) {
-        var filename = evObj.pieces[0]; 
-        fs.writefile(filename, text);
-    });
-   
-    gcd.emit("need document:first.md");
 
 
 ## Old -- just for reference
@@ -706,7 +764,8 @@ The requisite npm package file.
       "dependencies":{
           "nomnom": "^1.8.1",
           "literate-programming-lib" : "^1.2.1",
-          "iconv-lite" : "^0.4.7"
+          "iconv-lite" : "^0.4.7",
+          "mkdirp": "^0.5.0"
       },
       "devDependencies" : {
       },
@@ -715,7 +774,7 @@ The requisite npm package file.
       },
       "keywords": ["literate programming"],
       "bin": {
-        "litpro" : "./index.js"
+        "litpro" : "./litpro.js"
       }
     }
 
@@ -723,10 +782,12 @@ The requisite npm package file.
 ## gitignore
 
     node_modules
+    build
 
 ## npmignore
 
 
+    build
     tests
     test.js
     travis.yml
