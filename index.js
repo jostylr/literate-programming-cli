@@ -5,6 +5,7 @@ var path = require('path');
 var sep = path.sep;
 var Folder = require('literate-programming-lib');
 var mkdirp = require('mkdirp');
+var exec = require('child_process').exec;
 
 var root = process.cwd();
 

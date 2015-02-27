@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.2.2")
+# [literate-programming-cli](# "version:0.3.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -82,6 +82,7 @@ The directories are a bit tricky.
     var sep = path.sep;
     var Folder = require('literate-programming-lib');
     var mkdirp = require('mkdirp');
+    var exec = require('child_process').exec;
 
     var root = process.cwd();
 
@@ -342,354 +343,141 @@ instantiation.
     }
    
 
+## New Commands
+
+So here we define new commands that only make sense in command line context. 
+
+* execute Executes a command line with the input being the std input? 
+
+### execute
+
+This executes a command on the command line and returns the text. 
 
 
 
+## New Directives
 
+* execute which takes in a string as the title and executes, returning the
+  output stored in the variable named in the link thext. 
+* readfile Read a file and store it. 
+* download  Download something and store. Uses the cache
+* downsave  Download and then save in a file. Uses the cache. Uses streams to
+  do this quickly and efficiently. Think images. 
 
-## Plugins
-
-It will, however, starting with the current working directory (where the
-command was issued), search out for either `lprc.js` or `node_modules`,
-respectively per level up the heirarchy. This will load the plugins in lprc.js
-or it will load `litpro-` modules automatically. Failing to find any of these
-things, it will then look at the environment for a litpro entry pointing to a
-js file. 
-
-
-
-
-## Old -- just for reference
-
-This is the command line file. It loads the literate programming document, sends it to the module to get a doc object, and then sends the file component to the save command. 
-
-By default, it loads the standard plugins in literate-programming-standard. This can be turned off with the -f command line option. All loaded literate programs inherit this decision. 
-
-postCompile is a an array of arrays of the form [function, "inherit"/"", dataObj]
-
-    #!/usr/bin/env node
-
-    /*global process, require, console*/
-    /*jslint evil:true*/
-    var program = require('commander');
-    var fs = require('fs');
-    var Doc = require('../lib/literate-programming').Doc;
-    var path = require('path');
-
-
-    _"Command line options"
-
-    var postCompile; 
-
-    _"Post Compile function"
-
-
-    if (program.preview) {
-        postCompile.push([_"Preview files", {}]);
-    } else if (program.diff) {
-        postCompile.push([_"Diff files", {dir:dir}]);
-    } else {
-        postCompile.push([_"Save files", {dir: dir}]);
-    }
-
-    var standardPlugins, plugins; 
-
-    if (!program.free) {
-        standardPlugins = require('literate-programming-standard');
-        _"check for lprc file"
-    } else {
-        standardPlugins = {};
-    }
-
-    if (!program.quiet) {
-        postCompile.push([_"Cli log", {}]);
-    }
-
-    postCompile.push([_"Action cleanup", {}]);
-
-    var doc = new Doc(md, {
-        standardPlugins : standardPlugins,
-        plugins : plugins,
-        postCompile : postCompile, 
-        parents : null,
-        fromFile : null,
-        inputs : inputs,
-        program : program,
-        verbose : verbose
-    });
-
-
-    _"On exit"
+    Folde.directives.execute = _"dir execute";
+    Folde.directives.readfile = _"dir readfile";
+    Folde.directives.download = _"dir download";
+    Folde.directives.downsave = _"downsave";
 
 
 
-#### Post Compile function
+### Dir Execute
 
-This takes in a text and is called in the context of a passin object. 
 
-[](# "js")
-
-    postCompile = function (text) {
-        var passin = this;
-        var doc = this.doc;
-        var steps = doc.postCompile.steps;
-        var i = 0; 
-        var next = _":Next function";
-        next(text); 
-    };
+This is the directive for executing a command on the command line and storing
+it in a variable.
     
-    postCompile.push = _"Post Compile function:push";
-
-    postCompile.steps = [];
-
-[Push](# "js") 
-
-    function (arr) {
-        this.steps.push(arr);
-    }
-
-[Next function](# "js") 
-
-    function(text) {
-        if (i  < steps.length) {
-            var step = steps[i];
-            i+= 1;
-            step[0].call(passin, text, next, step[1]);
-        } else {
-            // done
-        }
-
-    }
-
-
-#### Action cleanup
-
-We need to delete the associated action after it is done. 
-
-    function (text, next) {
-        var doc = this.doc;
-        try {
-            delete doc.actions[this.action.msg];
-        } catch (e) {
-        }
-        next(text);
-    }
-
-#### Save Files 
-
-
-    function (text, next, obj) {
-        var passin = this;
-        var doc = passin.doc;
-        if (passin.action && passin.action.filename) {
-            var fname = passin.action.filename;
-
-            process.chdir(originalroot);
-            if (obj.dir) {
-                process.chdir(dir);
-            }            
-            var cb = _":Callback ";
-
-            fs.writeFile(fname, text, 'utf8', cb);
-        } else {
-            next(text);
-        }
-    }
-
-[Callback Factory](# "js") 
-
-Information about what happened with the file writing and then next is called. 
-
-    function (err) {
-        if (err) {
-            doc.log("Error in saving file " + fname + ": " + err.message);
-        } else {
-            doc.log("File "+ fname + " saved");
-        }
-        next(text);
-    }
-
-
-#### Preview files
-
-This is a safety precaution to get a quick preview of the output. 
-
-    function (text, next) {
-        var passin = this;
-        var doc = passin.doc;
-        if (passin.action && passin.action.filename) {
-            var fname = passin.action.filename;
-            doc.log(fname + ": " + text.length  + "\n"+text.match(/^([^\n]*)(?:\n|$)/)[1]);
-        }
-        next(text);
-    }
-
-
-#### Diff files
-
-This is to see the changes that might occur before saving the files. 
-
-Currently not working
-
-    function (text, next, obj) {        
-        var passin = this;
-        var doc = passin.doc;
-        var fname = passin.action.filename;
-
-        process.chdir(originalroot);
-        if (obj.dir) {
-            process.chdir(dir);
-        }
-
-        doc.log(fname + " diff not activated yet ");
-        next(text);
-    }
-
-
-
-### Cli log
-
-This is where we report the logs. 
-
-    function (text, next) {
-        var doc = this.doc;
-        var logitem;
-        var i, n = doc.logarr.length;
-        for (i = 0; i < n; i += 1) {
-            logitem = doc.logarr.shift();
-            if ( (logitem[1] || 0) <= doc.verbose) {
-                console.log(logitem[0] );
-            } 
-        }
-        next(text);
-    }
-
-### Check for lprc file
-
-An lprc file is a JavaScript file that contains various plugin type stuff. This allows one to define it once for a project and then all the litpro programs can use it. Probably better than the require directive. 
-
-There should be just one such file 
-
-To find it, we start with the cwd and look for such files in each parent directory. 
-
-This can be made more complicated if there is a reason to do so, but I think a single plugin file for a project is probably sufficient. There is always require. 
-
-
-[](# "js: ife")
-
-    var original = process.cwd();
-    var files;
-
-    var matchf = function (el) {return el.match("lprc.js");};
-
-    var current;
-    plugins = {};
-    var bits = original.split(path.sep);
-    var lead = ( original[0] === path.sep) ? path.sep : "";
-    do {
-        current = lead + path.join.apply(path, bits);
-        files = fs.readdirSync(current);
-        files = files.filter(matchf);
-        if (files.length === 1 ) {
-            plugins = require(current+path.sep+files[0]);
-            break;
-        } else {
-            bits.pop();
-        }
-    } while (bits.length > 0);
-
-
-
-
-
-### Command line options
-
-Here we define what the various configuration options are. 
-
-The preview option is used to avoid overwriting what exists without checking first. Eventually, I will hookup a diff view. There might also be a test-safe mode which runs the tests and other stuff and will not save if they do not pass. 
-
-Added ability to pass in arguments to the literate program. It is in the array variable inputs.
-
-    program
-        .version('DOCVERSION')
-        .usage('[options] <file> <outdir> <arg1> ...')
-        .option('-o --output <root>', 'Root directory for output')
-        .option('-i --input <root>',  'Root directory for input')
-        .option('-r --root <root>', 'Change root directory for both input and output')
-        .option('-p --preview',  'Do not save the changes. Output first line of each file')
-        .option('-f --free', 'Do not use the default standard library of plugins') 
-        .option('-d --diff', 'Compare diffs of old file and new file')
-        .option('-e --extension <ext>', 'requires a ext as extension for the file')
-        .option('--verbose', 'Full warnings turned on')
-    ;
-
-    program.parse(process.argv);
-
-    if ((! program.args[0]) ) {
-        console.log("Need a file");
-        process.exit();
-    }
-
-
-    var dir = program.dir || program.root || program.args[1] || process.cwd(); 
-    var indir = program.change || program.root || process.cwd();
-    var originalroot = process.cwd();
-    if (indir) {
-        process.chdir(indir);
-    }
-
-    var verbose = program.verbose || 0;
-
-    if (program.extension) {
-        if (program.args[0].substr(-program.extension.length) !== program.extension) {
-            console.log("Requires extension: " + program.extension);
-            process.exit();
-        }
-    }
-
-    var md;
-    try {
-        md = fs.readFileSync(program.args[0], 'utf8');
-    } catch (e) {
-        console.log("Not readable file " + program.args[0]);
-        md = ""; 
-    }
-
-    var inputs =  program.args.slice(2);
-
-#### On exit
-
-    process.on('exit', function () {
-        if (Object.keys(doc.waiting).length > 0 ) {
-            console.log("The following blocks failed to compile: \n",  Object.keys(doc.waiting).join("\n "));
-        } 
-        if (Object.keys(doc.actions).length > 0 ) {
-            console.log("The following actions failed to execute: \n",  Object.keys(doc.actions).join("\n "));
-        } 
-
-        var fdoc, fdocname;
-        for (fdocname in doc.repo.litpro) {
-            fdoc = doc.repo.litpro[fdocname]; 
-            if (Object.keys(fdoc.waiting).length > 0 ) {
-                console.log("The following blocks in "+fdocname+" failed to compile: \n",  Object.keys(fdoc.waiting).join("\n "));
-            } 
-            if (Object.keys(fdoc.actions).length > 0 ) {
-                console.log("The following actions in "+fdocname+" failed to execute: \n",  Object.keys(fdoc.actions).join("\n "));
+`[name](# "execute:command line command")`
+
+    function (args) {
+        var doc = this;
+        var command = args.input;
+        var name = doc.colon.escape(args.link);
+
+        exec(command, function (err, stdout, stderr) {
+            if (err) {
+               gcd.emit("error:execute", [command, err, stderr]); 
+            } else {
+                doc.store(name, value);
+                if (stderr) {
+                    gcd.emit("error:execute output", [command, stderr]);
+                }
             }
-        } 
-    });
+        });
+    }
+
+### Dir Readfile
 
 
+This is the directive for reading a file and storing its text.  It can have pipes that
+transform it in someway before storage. Think something like csv data. 
 
-## References
+`[var name](url "readfile:encoding|commands")`
+   
 
-I always have to look up the RegEx stuff. Here I created regexs and used their [exec](https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/RegExp/exec) method to get the chunks of interest. 
+    function (args) {
+        var doc = this;
+        var options = args.title;
+        var name = doc.colon.escape(args.link);
+        var url = args.href; 
 
-[MDN RegExp page](https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/RegExp)
+        
+        fs.readfile(url, function (err, stdout, stderr) {
+            if (err) {
+               gcd.emit("error:execute", [command, err, stderr]); 
+            } else {
+                doc.store(name, value);
+                if (stderr) {
+                    gcd.emit("error:execute output", [command, stderr]);
+                }
+            }
+        });
+    }
 
-Also of invaluable help with all of this is [RegExpr](http://www.regexper.com/)
+### Dir Download
 
 
+This is the directive for downloading a file and storing its text in a
+variable for access. It can have pipes that transform it in someway before
+storage.    
+
+`[var name](url "download:|commands")`
+
+
+    function (args) {
+        var doc = this;
+        var options = args.title;
+        var name = doc.colon.escape(args.link);
+        var url = args.href; 
+
+        
+        fs.readfile(url, function (err, stdout, stderr) {
+            if (err) {
+               gcd.emit("error:execute", [command, err, stderr]); 
+            } else {
+                doc.store(name, value);
+                if (stderr) {
+                    gcd.emit("error:execute output", [command, stderr]);
+                }
+            }
+        });
+    }
+
+### Downsave
+
+
+This is the directive for downloading and saving a file directory. 
+
+`[out filename](url "downsave:")
+
+    function (args) {
+        var doc = this;
+        var options = args.title;
+        var name = doc.colon.escape(args.link);
+        var url = args.href; 
+
+        
+        fs.readfile(url, function (err, stdout, stderr) {
+            if (err) {
+               gcd.emit("error:execute", [command, err, stderr]); 
+            } else {
+                doc.store(name, value);
+                if (stderr) {
+                    gcd.emit("error:execute output", [command, stderr]);
+                }
+            }
+        });
+    }
 ## README
 
 
@@ -698,8 +486,6 @@ literate-programming-cli
 
 This is the command line client for literate-programming. 
 
-!! Currently not working nor published!
-
 Install using `npm install literate-programming-cli`
 
 Usage is `./node_modules/bin/litpro file` and it has some command flags. 
@@ -707,6 +493,36 @@ Usage is `./node_modules/bin/litpro file` and it has some command flags.
 If you want a global install so that you just need to write `litpro` then use
 `npm install -g literate-programming-cli`. 
 
+ ## Flags
+
+The various flags are
+
+* -e, --encoding Specify the default encoding. It defaults to utf8, but any
+  encoding supported by iconv-lite works. To override that behavior per loaded
+  file from a document, one can put the encoding between the colon and pipe in
+  the directive title. This applies to both reading and writing. 
+* -f, --file A specified file to process. It is possible to have multiple
+  files, each proceeded by an option. Also any unclaimed arguments will be
+  assumed to be a file that gets added to the list. 
+* -l, --lprc This specifies the lprc.js file to use. None need not be
+  provided. The lprc file should export a function that takes in as arguments
+  the Folder constructor and an args object (what is processed from the
+  command line). This allows for quite a bit of sculpting. See more in lprc. 
+* -b, --build  The build directory. Defaults to build. Will create it if it
+  does not exist. Specifying . will use the current directory. 
+* -s, --src  The source directory to look for files from load directives. The
+  files specified on the command line are used as is while those loaded from
+  those files are prefixed. Shell tab completion is a reaoson for this
+  difference. 
+* -c, --cache The cache is a place for assets downloaded from the web. Not
+  actually used yet. 
+* -p, --preview This previews the files, saving none. Note that due to the
+  nature of evaling, etc., this should not be mistaken for safety. It is still
+  possible to overwrite stuff, just not using provided methods. 
+* -d, --diff This computes the difference between each files from their
+  existing versions.
+
+    
 
 
 
@@ -720,16 +536,19 @@ If you want a global install so that you just need to write `litpro` then use
 
 preview, diff command mode
 
-build, src
-
-extensions
 
 readfile, directory, writefile commands for use from a litpro doc.
 
 maybe a built in watcher program, using nodemon?  
-command line: read file, readdir, write file, file encodings, curling, creating subdir — init stuff
+command line: read file, readdir, write file, file encodings, curling, 
 
-plugins: version--npm stuff, jshint, jstidy, jade, markdown, 
+plugins: version--npm stuff, jshint, jstidy, jade, markdown,
+
+development versus deployment? Maybe manage it with different lprc files. So
+default is development, but then one production ready, switch to lprc-prod.js
+which could send to a different build directory. Also minify commands, etc.,
+could be available in both, but changed so that in development they are a
+passthru noop. 
 
 ## NPM package
 
@@ -765,7 +584,7 @@ The requisite npm package file.
       },
       "dependencies":{
           "nomnom": "^1.8.1",
-          "literate-programming-lib" : "^1.2.1",
+          "literate-programming-lib" : "^1.3.0",
           "iconv-lite" : "^0.4.7",
           "mkdirp": "^0.5.0"
       },
