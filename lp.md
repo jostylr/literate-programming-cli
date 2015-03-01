@@ -56,9 +56,18 @@ files.
 
     //console.log(args);
 
-    mod.Folder.lprc(args.lprc, args);
+    var Folder = mod.Folder;
 
-    var folder = new mod.Folder();
+    Folder.lprc(args.lprc, args);
+
+    Folder.cache.firstLoad(args.cache, args.cachefile);
+
+    var folder = new Folder();
+    
+    folder.checksum = Object.create(Folder.checksum);
+    folder.checksum.data = {};
+
+    folder.checksum.firstLoad(args.build, args.checksum);
 
     folder.process(args);
 
@@ -83,7 +92,11 @@ The directories are a bit tricky.
     var Folder = require('literate-programming-lib');
     var mkdirp = require('mkdirp');
     var exec = require('child_process').exec;
-
+    var needle = require('needle');
+    var diff = require('diff');
+    var colors = require('colors/safe');
+    var crypto = require('crypto'); 
+    
     var root = process.cwd();
 
     _"preload"
@@ -121,6 +134,11 @@ something. For example, we could enable logging with the gcd.
 
     Folder.prototype.process = _":process";
 
+    Folder.cache = _"cache";
+
+    var checksum = Folder.checksum = _"checksum";
+
+
 
     
 [exit]()
@@ -135,6 +153,10 @@ The function to run on exiting.
         } else {
             console.log("Nothing reports waiting.");
         }
+
+        Folder.cache.finalSave();
+
+        folder.checksum.finalSave();
 
         //console.log(folder, folder.gcd);
         
@@ -194,14 +216,18 @@ saving one.
             var fpath = folder.build;
             var fullname = fpath + sep + filename; 
             fpath = fpath + (firstpart ? sep + firstpart : "");
-            fs.writeFile(fullname, text, 
-                {encoding:encoding},  function (err) {
-                if (err) {
-                    _":mkdirp";
-                } else{
-                    console.log("File " + fullname + " saved");
-                }
-            });
+            if (folder.checksum.tosave(fullname, text) ) {
+                fs.writeFile(fullname, text, 
+                    {encoding:encoding},  function (err) {
+                    if (err) {
+                        _":mkdirp";
+                    } else{
+                        folder.log("File " + fullname + " saved");
+                    }
+                });
+            } else {
+                folder.log("File " + fullname + " unchanged.");
+            }
         }],
         ["report error", function (data, evObj) {
             console.log(evObj.ev + (data ? " INFO: " + data : "") );
@@ -290,6 +316,8 @@ to overwrite whatever they like in it though ideally they play nice.
         }, 
         "encoding" : _"encodings:option",
         _":dir",
+        _"cache:cli options",
+        _"checksum:cli options",
         "lprc": {
             abbr : "l",
             default : root + sep + "lprc.js",
@@ -318,9 +346,8 @@ This sets up the default directories.
 
 ## LPRC
 
-The plugins are managed by a lprc.js or by scanning `node_modules`. For now,
-we will simply load a lprc.js file in the current working directory. In the
-future, we will scan upwards. 
+The plugins are managed by a lprc.js which should be located in the directory
+that literate programming is invoked from.
 
 The lprc.js file should return a function which is also what plugins should
 do. They modify properties on Folder, namely commands, directives, and
@@ -388,7 +415,7 @@ it in a variable.
             if (err) {
                gcd.emit("error:execute", [command, err, stderr]); 
             } else {
-                doc.store(name, value);
+                doc.store(name, stdout);
                 if (stderr) {
                     gcd.emit("error:execute output", [command, stderr]);
                 }
@@ -407,19 +434,15 @@ transform it in someway before storage. Think something like csv data.
 
     function (args) {
         var doc = this;
-        var options = args.title;
         var name = doc.colon.escape(args.link);
-        var url = args.href; 
+        var filename = args.href; 
 
         
-        fs.readfile(url, function (err, stdout, stderr) {
+        fs.readfile(filename, function (err, value) {
             if (err) {
-               gcd.emit("error:execute", [command, err, stderr]); 
+               gcd.emit("error:readfile", [filename, name, err]); 
             } else {
                 doc.store(name, value);
-                if (stderr) {
-                    gcd.emit("error:execute output", [command, stderr]);
-                }
             }
         });
     }
@@ -428,56 +451,298 @@ transform it in someway before storage. Think something like csv data.
 
 
 This is the directive for downloading a file and storing its text in a
-variable for access. It can have pipes that transform it in someway before
-storage.    
+variable for access. Note the encoding is for saving and writing locally; the
+encoding from the server is whatever it is. 
 
-`[var name](url "download:|commands")`
+
+`[var name](url "download:encoding")`
 
 
     function (args) {
         var doc = this;
-        var options = args.title;
+        var gcd = doc.gcd;
         var name = doc.colon.escape(args.link);
-        var url = args.href; 
-
-        
-        fs.readfile(url, function (err, stdout, stderr) {
-            if (err) {
-               gcd.emit("error:execute", [command, err, stderr]); 
+        var url = args.href;
+        var encoding = args.input || doc.parent.encoding;
+       
+        if (cache.has(url) ) {
+            _":load cache"
+        } else {
+            if (cache.waiting(url) ) {
+                _":waiting for download"
             } else {
-                doc.store(name, value);
-                if (stderr) {
-                    gcd.emit("error:execute output", [command, stderr]);
-                }
+                _":do the download"
             }
-        });
+        }
     }
+
+
+[load cache]()
+
+The file is cached, we load it. 
+
+    cache.load(url, encoding, function (err, value) {
+        if (err) {
+           gcd.emit("error:http request:cache error", [url, name, err]); 
+        } else {
+            doc.store(name, value);
+        }
+    });
+
+
+[waiting for download]()
+
+Here we are waiting for someone else to download the file.
+
+    gcd.on("cache url downloaded:" + doc.colon.escape(url),
+        function (data) {
+            doc.store(name, data);
+    });
+
+[do the download]()
+
+We use the needle library to do the download. If all goes well, we store the
+file, store the variable, and emit the answer. 
+
+    needle.get(url, {compressed : true}, function (err, response) {
+        var text;
+        if (err) {
+            gcd.emit("error:http request:failed", [err, url, name]);
+        } else {
+            if (response.statusCode === 200) {
+                text = response.body;
+                cache.save(url, encoding, text);
+                doc.store(name, text);
+                gcd.emit("cache url downloaded:" + doc.colon.escape(url), 
+                    text);
+            } else {
+                gcd.emit("error:http request:bad status", [url, name,
+                    response]);
+            }
+        }
+
+    });
+
+
 
 ### Downsave
 
 
-This is the directive for downloading and saving a file directory. 
+This is the directive for downloading and saving a file directly. Think
+pictures or bootstrap support files. Stuff not being acted on. This stuff
+should be streamed to their destinations, whether to/from the cache or not. 
 
-`[out filename](url "downsave:")
+If there is a zipurl, then if the url is not cached, then the zipurl is
+downloaded (after checking the cache) instead and unzipped with the filename 
+
+`[out filename](url "downsave: zipurl")`
+
 
     function (args) {
         var doc = this;
-        var options = args.title;
         var name = doc.colon.escape(args.link);
-        var url = args.href; 
-
-        
-        fs.readfile(url, function (err, stdout, stderr) {
-            if (err) {
-               gcd.emit("error:execute", [command, err, stderr]); 
-            } else {
-                doc.store(name, value);
-                if (stderr) {
-                    gcd.emit("error:execute output", [command, stderr]);
+        var url = args.href;
+        var zipurl = args.title;
+       
+        if (cache.has(url) ) {
+            cache.load(url, function (err, value) {
+                if (err) {
+                   gcd.emit("error:http request:cache error", [url, name, err]); 
+                } else {
+                    doc.store(name, value);
                 }
+            });
+        } else {
+            if (
+            needle.get(url, {compressed : true}, function (err, response) {
+                if (err) {
+                    gcd.emit("error:http request:failed", [err, url, name]);
+                } else {
+                    if (response.statusCode === 200) {
+                        doc.store(name, response.body);
+                        cache.save(url, response.body);
+                    } else {
+                        gcd.emit("error:http request:bad status", [url, name,
+                            response]);
+                    }
+                }
+
+            });
+    }
+
+
+
+## Cache
+
+This implements the cache object to save on downloads. In particular, the idea
+is that we should save downloads by caching locally in the cache directory. We
+need the following methods:
+
+* has  Whether the url has been cached
+* save This stores the downloaded file and records it in the cache
+* load This loads the cache object from the directory. 
+* firstLoad  Synchronous loading of the cache file.
+* finalSave Synchronos saving of the cache object upon exit. 
+
+The cache directory should be excluded from npm and git. 
+
+    { has : _":has",
+        save : _":save",
+        load : _":load",
+        firstLoad : _":first load",
+        finalSave : _":final save",
+        dir : '',
+        filename : '',
+        data : {} 
+    }
+
+[first load]()
+
+This tries to read in the file. 
+
+    function (dir, file) {
+        var filename = dir + sep + file;
+        var json, self = this;
+        self.dir = dir;
+        self.filename = filename;
+
+
+        try { 
+            mkdirp.sync(dir);
+            json = fs.readFileSync(filename, {encoding:"utf8"});
+            self.data = JSON.parse(json);
+            self.filename = filename;
+        } catch (e) {
+            self.data = {};
+        }
+    }
+
+[has]()
+
+    function (name) {
+        return this.data.hasOwnProperty(name);
+    }
+
+[save]()
+
+We will save the files using their checksum as the name and using the cache
+file as the record associating with the url. Seems safest. 
+
+    function (url, encoding, text) {
+        var self = this;
+        var name = checksum.sha1sync(text); 
+        fs.writeFile(name, text, {encoding:encoding}, function (err) {
+            if (err) {
+                console.log("error:cache saving error", [url, name, text]);
+            } else {
+                self.data[url] = name;
             }
         });
     }
+
+ 
+[load]()
+
+The object exists in the cache. Let's load it.
+
+    function (url, encoding, callback) {
+        var self = this;
+
+        fs.readFile(self.data[url], {encoding:encoding}, callback);
+
+    }
+
+[final save]()
+
+Wrtite out the 
+
+    function () {
+        var self = this;
+
+        try {
+            fs.writeFileSync(self.filename, JSON.stringify(self.data));
+        } catch (e) {
+            console.log("error:cache file not savable", [e.message, self.filename]);
+        }
+    }
+
+[cli options]()
+
+This is the object that handles the argument parsing options.
+
+    cachefile : {
+        default : ".cache"
+    }
+
+
+## Checksum
+
+This holds the checksums of 
+
+    {
+        firstLoad : _"cache:first load",
+        finalSave : _"cache:final save",
+        sha1sync : _":sha1 sync",
+        tosave: _":to save",
+        filename : '',
+        dir : '',
+        data : {} 
+    }
+
+
+[cli options]()
+
+This is the object that handles the argument parsing options.
+
+    checksum : {
+        default : ".checksum"
+    }
+
+[to save]()
+
+Does it need saving?
+
+    function (name, text) {
+        var self = this;
+        var data = self.data;
+
+        var sha = self.sha1sync(text);
+
+        if ( data.hasOwnProperty(name) &&
+             (data[name] === sha) ) {
+            return false; 
+        } else {
+            data[name] = sha;
+            return true;
+        }
+    }
+
+
+[sha1 sync]()
+
+    function (text) {
+        var shasum = crypto.createHash('sha1');
+
+        shasum.update(text);
+        return shasum.digest('base64');
+    }
+
+
+[sha1 async]()
+
+
+    var s = fs.ReadStream(filename);
+    s.on('data', function(d) {
+      shasum.update(d);
+    });
+
+    s.on('end', function() {
+      var d = shasum.digest('hex');
+      console.log(d + '  ' + filename);
+    });
+
+
+
 ## README
 
 
@@ -514,13 +779,11 @@ The various flags are
   files specified on the command line are used as is while those loaded from
   those files are prefixed. Shell tab completion is a reaoson for this
   difference. 
-* -c, --cache The cache is a place for assets downloaded from the web. Not
-  actually used yet. 
-* -p, --preview This previews the files, saving none. Note that due to the
-  nature of evaling, etc., this should not be mistaken for safety. It is still
-  possible to overwrite stuff, just not using provided methods. 
+* -c, --cache The cache is a place for assets downloaded from the web.
+* --cachefile This gives an alternate name for the cache file that registers
+  what is downloaded. Default is `.cache`
 * -d, --diff This computes the difference between each files from their
-  existing versions.
+  existing versions. There is no saving of files. 
 
     
 
@@ -583,10 +846,14 @@ The requisite npm package file.
         "node": ">=0.10"
       },
       "dependencies":{
-          "nomnom": "^1.8.1",
-          "literate-programming-lib" : "^1.4.0",
-          "iconv-lite" : "^0.4.7",
-          "mkdirp": "^0.5.0"
+        "checksum": "^0.1.1",
+        "colors": "^1.0.3",
+        "diff": "^1.2.2",
+        "iconv-lite": "^0.4.7",
+        "literate-programming-lib": "^1.4.0",
+        "mkdirp": "^0.5.0",
+        "needle": "^0.7.11",
+        "nomnom": "^1.8.1"
       },
       "devDependencies" : {
       },
@@ -604,11 +871,13 @@ The requisite npm package file.
 
     node_modules
     build
+    cache
 
 ## npmignore
 
 
     build
+    cache
     tests
     test.js
     travis.yml

@@ -8,9 +8,18 @@ var args = mod.opts.parse();
 
 //console.log(args);
 
-mod.Folder.lprc(args.lprc, args);
+var Folder = mod.Folder;
 
-var folder = new mod.Folder();
+Folder.lprc(args.lprc, args);
+
+Folder.cache.firstLoad(args.cache, args.cachefile);
+
+var folder = new Folder();
+
+folder.checksum = Object.create(Folder.checksum);
+folder.checksum.data = {};
+
+folder.checksum.firstLoad(args.build, args.checksum);
 
 folder.process(args);
 

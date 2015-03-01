@@ -6,6 +6,10 @@ var sep = path.sep;
 var Folder = require('literate-programming-lib');
 var mkdirp = require('mkdirp');
 var exec = require('child_process').exec;
+var needle = require('needle');
+var diff = require('diff');
+var colors = require('colors/safe');
+var crypto = require('crypto'); 
 
 var root = process.cwd();
 
@@ -49,28 +53,32 @@ Folder.actions = {"on" : [
             var fpath = folder.build;
             var fullname = fpath + sep + filename; 
             fpath = fpath + (firstpart ? sep + firstpart : "");
-            fs.writeFile(fullname, text, 
-                {encoding:encoding},  function (err) {
-                if (err) {
-                    mkdirp(fpath, function (err) {
-                        console.log(fpath);
-                        if (err) {
-                            gcd.emit("error:directory not makeable", fpath);
-                        } else {
-                            fs.writeFile(fullname, text, 
-                                {encoding:encoding},  function (err) {
-                                    if (err) {
-                                        gcd.emit("error:file not saveable",fullname);
-                                    } else {
-                                        console.log("File " + fullname + " saved");
-                                    }
-                                });
-                        }
-                    });
-                } else{
-                    console.log("File " + fullname + " saved");
-                }
-            });
+            if (folder.checksum.tosave(fullname, text) ) {
+                fs.writeFile(fullname, text, 
+                    {encoding:encoding},  function (err) {
+                    if (err) {
+                        mkdirp(fpath, function (err) {
+                            console.log(fpath);
+                            if (err) {
+                                gcd.emit("error:directory not makeable", fpath);
+                            } else {
+                                fs.writeFile(fullname, text, 
+                                    {encoding:encoding},  function (err) {
+                                        if (err) {
+                                            gcd.emit("error:file not saveable",fullname);
+                                        } else {
+                                            console.log("File " + fullname + " saved");
+                                        }
+                                    });
+                            }
+                        });
+                    } else{
+                        folder.log("File " + fullname + " saved");
+                    }
+                });
+            } else {
+                folder.log("File " + fullname + " unchanged.");
+            }
         }],
         ["report error", function (data, evObj) {
             console.log(evObj.ev + (data ? " INFO: " + data : "") );
@@ -87,6 +95,10 @@ Folder.prototype.exit = function () {
         } else {
             console.log("Nothing reports waiting.");
         }
+    
+        Folder.cache.finalSave();
+    
+        folder.checksum.finalSave();
     
         //console.log(folder, folder.gcd);
         
@@ -110,6 +122,105 @@ Folder.prototype.process = function (args) {
             gcd.emit("initial document:" +  emitname);
         }
     
+    };
+
+Folder.cache = { has : function (name) {
+        return this.data.hasOwnProperty(name);
+    },
+        save : function (url, encoding, text) {
+                var self = this;
+                var name = checksum.sha1sync(text); 
+                fs.writeFile(name, text, {encoding:encoding}, function (err) {
+                    if (err) {
+                        console.log("error:cache saving error", [url, name, text]);
+                    } else {
+                        self.data[url] = name;
+                    }
+                });
+            },
+        load : function (url, encoding, callback) {
+                var self = this;
+            
+                fs.readFile(self.data[url], {encoding:encoding}, callback);
+            
+            },
+        firstLoad : function (dir, file) {
+                var filename = dir + sep + file;
+                var json, self = this;
+                self.dir = dir;
+                self.filename = filename;
+            
+                try { 
+                    mkdirp.sync(dir);
+                    json = fs.readFileSync(filename, {encoding:"utf8"});
+                    self.data = JSON.parse(json);
+                    self.filename = filename;
+                } catch (e) {
+                    self.data = {};
+                }
+            },
+        finalSave : function () {
+                var self = this;
+            
+                try {
+                    fs.writeFileSync(self.filename, JSON.stringify(self.data));
+                } catch (e) {
+                    console.log("error:cache file not savable", [e.message, self.filename]);
+                }
+            },
+        dir : '',
+        filename : '',
+        data : {} 
+    };
+
+var checksum = Folder.checksum = {
+        firstLoad : function (dir, file) {
+                var filename = dir + sep + file;
+                var json, self = this;
+                self.dir = dir;
+                self.filename = filename;
+            
+                try { 
+                    mkdirp.sync(dir);
+                    json = fs.readFileSync(filename, {encoding:"utf8"});
+                    self.data = JSON.parse(json);
+                    self.filename = filename;
+                } catch (e) {
+                    self.data = {};
+                }
+            },
+        finalSave : function () {
+                var self = this;
+            
+                try {
+                    fs.writeFileSync(self.filename, JSON.stringify(self.data));
+                } catch (e) {
+                    console.log("error:cache file not savable", [e.message, self.filename]);
+                }
+            },
+        sha1sync : function (text) {
+                var shasum = crypto.createHash('sha1');
+            
+                shasum.update(text);
+                return shasum.digest('base64');
+            },
+        tosave: function (name, text) {
+                var self = this;
+                var data = self.data;
+            
+                var sha = self.sha1sync(text);
+            
+                if ( data.hasOwnProperty(name) &&
+                     (data[name] === sha) ) {
+                    return false; 
+                } else {
+                    data[name] = sha;
+                    return true;
+                }
+            },
+        filename : '',
+        dir : '',
+        data : {} 
     };
 
 var iconv = require('iconv-lite'); 
@@ -147,6 +258,12 @@ var opts = require("nomnom").
             cache : {
                 abbr : "c",
                 default : root + sep + "cache"
+            },
+            cachefile : {
+                default : ".cache"
+            },
+            checksum : {
+                default : ".checksum"
             },
             "lprc": {
                 abbr : "l",

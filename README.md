@@ -31,13 +31,11 @@ The various flags are
   files specified on the command line are used as is while those loaded from
   those files are prefixed. Shell tab completion is a reaoson for this
   difference. 
-* -c, --cache The cache is a place for assets downloaded from the web. Not
-  actually used yet. 
-* -p, --preview This previews the files, saving none. Note that due to the
-  nature of evaling, etc., this should not be mistaken for safety. It is still
-  possible to overwrite stuff, just not using provided methods. 
+* -c, --cache The cache is a place for assets downloaded from the web.
+* --cachefile This gives an alternate name for the cache file that registers
+  what is downloaded. Default is `.cache`
 * -d, --diff This computes the difference between each files from their
-  existing versions.
+  existing versions. There is no saving of files. 
 
     
 
