@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.3.0")
+# [literate-programming-cli](# "version:0.4.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -584,7 +584,7 @@ The requisite npm package file.
       },
       "dependencies":{
           "nomnom": "^1.8.1",
-          "literate-programming-lib" : "^1.3.0",
+          "literate-programming-lib" : "^1.4.0",
           "iconv-lite" : "^0.4.7",
           "mkdirp": "^0.5.0"
       },
