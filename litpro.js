@@ -16,6 +16,8 @@ Folder.cache.firstLoad(args.cache, args.cachefile);
 
 var folder = new Folder();
 
+folder.Folder = Folder;
+
 folder.checksum = Object.create(Folder.checksum);
 folder.checksum.data = {};
 

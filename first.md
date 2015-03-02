@@ -6,6 +6,10 @@ This is the first in a long series of litpro.
 
     _"second.md::note"
 
+    _"some more text"
+
 [first.txt](# "save:")
+
+[some more text](toread.txt "readfile:")
 
 

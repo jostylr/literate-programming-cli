@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.4.0")
+# [literate-programming-cli](# "version:0.5.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -63,6 +63,8 @@ files.
     Folder.cache.firstLoad(args.cache, args.cachefile);
 
     var folder = new Folder();
+
+    folder.Folder = Folder;
     
     folder.checksum = Object.create(Folder.checksum);
     folder.checksum.data = {};
@@ -127,6 +129,8 @@ something. For example, we could enable logging with the gcd.
     var loader = _"actions:load file";
 
     Folder.actions = _"actions";
+
+    _"new directives"
     
     Folder.prototype.encoding = "utf8";
 
@@ -399,10 +403,10 @@ This executes a command on the command line and returns the text.
 * downsave  Download and then save in a file. Uses the cache. Uses streams to
   do this quickly and efficiently. Think images. 
 
-    Folde.directives.execute = _"dir execute";
-    Folde.directives.readfile = _"dir readfile";
-    Folde.directives.download = _"dir download";
-    Folde.directives.downsave = _"downsave";
+    Folder.directives.execute = _"dir execute";
+    Folder.directives.readfile = _"dir readfile";
+    Folder.directives.download = _"dir download";
+    Folder.directives.downsave = _"downsave";
 
 
 
@@ -416,6 +420,7 @@ it in a variable.
 
     function (args) {
         var doc = this;
+        var gcd = doc.gcd;
         var command = args.input;
         var name = doc.colon.escape(args.link);
 
@@ -434,19 +439,23 @@ it in a variable.
 ### Dir Readfile
 
 
-This is the directive for reading a file and storing its text.  It can have pipes that
-transform it in someway before storage. Think something like csv data. 
+This is the directive for reading a file and storing its text.  
 
 `[var name](url "readfile:encoding|commands")`
    
 
     function (args) {
         var doc = this;
+        var gcd = doc.gcd;
         var name = doc.colon.escape(args.link);
         var filename = args.href; 
+        var cut = args.input.indexOf("|");
+        var encoding = args.input.slice(0,cut);
+        var pipes = args.input.slice(cut+1);
 
-        
-        fs.readfile(filename, function (err, value) {
+        encoding = encoding || doc.parent.encoding || "utf8";
+    
+        fs.readFile(filename, {encoding:encoding}, function (err, value) {
             if (err) {
                gcd.emit("error:readfile", [filename, name, err]); 
             } else {
@@ -472,6 +481,7 @@ encoding from the server is whatever it is.
         var name = doc.colon.escape(args.link);
         var url = args.href;
         var encoding = args.input || doc.parent.encoding;
+        var cache = doc.parent.Folder.cache;
        
         if (cache.has(url) ) {
             _":load cache"
@@ -554,9 +564,11 @@ destination so that we don't rewrite unnecessarily.
 
     function (args) {
         var doc = this;
+        var gcd = doc.gcd;
         var name = doc.colon.escape(args.link);
         var url = args.href;
         var zipurl = args.title;
+        var cache = doc.parent.Folder.cache;
        
         if (cache.has(url) ) {
             cache.load(url, function (err, value) {
@@ -567,7 +579,7 @@ destination so that we don't rewrite unnecessarily.
                 }
             });
         } else {
-            if (
+            if (true ) {
             needle.get(url, {compressed : true}, function (err, response) {
                 if (err) {
                     gcd.emit("error:http request:failed", [err, url, name]);
@@ -582,6 +594,8 @@ destination so that we don't rewrite unnecessarily.
                 }
 
             });
+            }
+        }
     }
 
 
@@ -769,7 +783,6 @@ First we need to install it.
 [do the diff]()
         
     function(text, evObj) {
-        console.log("hey");
         var gcd = evObj.emitter;
         var folder = gcd.parent;
         var colon = folder.colon;
@@ -809,7 +822,9 @@ First we need to install it.
                     ret += colors.red(part.value);
                 }
             });
-            folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+            //folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+            
+            folder.log(diff.createPatch(fullname, oldtext, text, "old", "new"));
         }
     });
 

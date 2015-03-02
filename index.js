@@ -87,6 +87,122 @@ Folder.actions = {"on" : [
         }]]
     };
 
+Folder.directives.execute = function (args) {
+    var doc = this;
+    var gcd = doc.gcd;
+    var command = args.input;
+    var name = doc.colon.escape(args.link);
+
+    exec(command, function (err, stdout, stderr) {
+        if (err) {
+           gcd.emit("error:execute", [command, err, stderr]); 
+        } else {
+            doc.store(name, stdout);
+            if (stderr) {
+                gcd.emit("error:execute output", [command, stderr]);
+            }
+        }
+    });
+};
+Folder.directives.readfile = function (args) {
+        var doc = this;
+        var gcd = doc.gcd;
+        var name = doc.colon.escape(args.link);
+        var filename = args.href; 
+        var cut = args.input.indexOf("|");
+        var encoding = args.input.slice(0,cut);
+        var pipes = args.input.slice(cut+1);
+    
+        encoding = encoding || doc.parent.encoding || "utf8";
+    
+        fs.readFile(filename, {encoding:encoding}, function (err, value) {
+            if (err) {
+               gcd.emit("error:readfile", [filename, name, err]); 
+            } else {
+                doc.store(name, value);
+            }
+        });
+    };
+Folder.directives.download = function (args) {
+        var doc = this;
+        var gcd = doc.gcd;
+        var name = doc.colon.escape(args.link);
+        var url = args.href;
+        var encoding = args.input || doc.parent.encoding;
+        var cache = doc.parent.Folder.cache;
+       
+        if (cache.has(url) ) {
+            cache.load(url, encoding, function (err, value) {
+                if (err) {
+                   gcd.emit("error:http request:cache error", [url, name, err]); 
+                } else {
+                    doc.store(name, value);
+                }
+            });
+        } else {
+            if (cache.waiting(url) ) {
+                gcd.on("cache url downloaded:" + doc.colon.escape(url),
+                    function (data) {
+                        doc.store(name, data);
+                });
+            } else {
+                needle.get(url, {compressed : true}, function (err, response) {
+                    var text;
+                    if (err) {
+                        gcd.emit("error:http request:failed", [err, url, name]);
+                    } else {
+                        if (response.statusCode === 200) {
+                            text = response.body;
+                            cache.save(url, encoding, text);
+                            doc.store(name, text);
+                            gcd.emit("cache url downloaded:" + doc.colon.escape(url), 
+                                text);
+                        } else {
+                            gcd.emit("error:http request:bad status", [url, name,
+                                response]);
+                        }
+                    }
+                
+                });
+            }
+        }
+    };
+Folder.directives.downsave = function (args) {
+        var doc = this;
+        var gcd = doc.gcd;
+        var name = doc.colon.escape(args.link);
+        var url = args.href;
+        var zipurl = args.title;
+        var cache = doc.parent.Folder.cache;
+       
+        if (cache.has(url) ) {
+            cache.load(url, function (err, value) {
+                if (err) {
+                   gcd.emit("error:http request:cache error", [url, name, err]); 
+                } else {
+                    doc.store(name, value);
+                }
+            });
+        } else {
+            if (true ) {
+            needle.get(url, {compressed : true}, function (err, response) {
+                if (err) {
+                    gcd.emit("error:http request:failed", [err, url, name]);
+                } else {
+                    if (response.statusCode === 200) {
+                        doc.store(name, response.body);
+                        cache.save(url, response.body);
+                    } else {
+                        gcd.emit("error:http request:bad status", [url, name,
+                            response]);
+                    }
+                }
+    
+            });
+            }
+        }
+    };
+
 Folder.prototype.encoding = "utf8";
 
 Folder.prototype.exit = function () {
@@ -120,7 +236,6 @@ Folder.prototype.process = function (args) {
     
         if (args.diff) {
             gcd.action("save file", function(text, evObj) {
-                    console.log("hey");
                     var gcd = evObj.emitter;
                     var folder = gcd.parent;
                     var colon = folder.colon;
@@ -148,7 +263,9 @@ Folder.prototype.process = function (args) {
                                             ret += colors.red(part.value);
                                         }
                                     });
-                                    folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+                                    //folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+                                    
+                                    folder.log(diff.createPatch(fullname, oldtext, text, "old", "new"));
                                 }
                             });
                         } else {
