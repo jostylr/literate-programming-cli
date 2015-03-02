@@ -53,7 +53,8 @@ Folder.actions = {"on" : [
             var fpath = folder.build;
             var fullname = fpath + sep + filename; 
             fpath = fpath + (firstpart ? sep + firstpart : "");
-            if (folder.checksum.tosave(fullname, text) ) {
+            var sha;
+            if ( (sha = folder.checksum.tosave(fullname, text) ) ) {
                 fs.writeFile(fullname, text, 
                     {encoding:encoding},  function (err) {
                     if (err) {
@@ -74,6 +75,7 @@ Folder.actions = {"on" : [
                         });
                     } else{
                         folder.log("File " + fullname + " saved");
+                        folder.checksum[fullname] = sha; 
                     }
                 });
             } else {
@@ -115,6 +117,49 @@ Folder.prototype.process = function (args) {
         folder.build = args.build;
         folder.cache = args.cache;
         folder.src = args.src;
+    
+        if (args.diff) {
+            gcd.action("save file", function(text, evObj) {
+                    console.log("hey");
+                    var gcd = evObj.emitter;
+                    var folder = gcd.parent;
+                    var colon = folder.colon;
+                    var emitname = evObj.pieces[0];
+                    var filename = colon.restore(emitname);
+                    var firstpart = filename.split(sep).slice(0, -1).join(sep);
+                    var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+                    var fpath = folder.build;
+                    var fullname = fpath + sep + filename; 
+                    fpath = fpath + (firstpart ? sep + firstpart : "");
+                    if (folder.checksum.tosave(fullname, text) ) {
+                        if (folder.checksum.data.hasOwnProperty(fullname) ) {
+                            fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
+                                var result, ret; 
+                                if (err) {
+                                    folder.log("Could not read old file" + fullname + 
+                                        " despite it being in the checksum file." );
+                                } else {
+                                    ret = '';
+                                    result = diff.diffLines(oldtext, text);
+                                    result.forEach(function (part) {
+                                        if (part.added) {
+                                            ret += colors.green(part.value);
+                                        } else if (part.removed) {
+                                            ret += colors.red(part.value);
+                                        }
+                                    });
+                                    folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+                                }
+                            });
+                        } else {
+                            folder.log("New file " + fullname + ":\n\n" + text +
+                                "\n----\n");
+                        }
+                    } else {
+                        folder.log("File " + fullname + " unchanged.");
+                    }
+                });
+        }
     
         var i, n = args.file.length;
         for (i = 0; i < n; i += 1) {
@@ -202,7 +247,7 @@ var checksum = Folder.checksum = {
                 var shasum = crypto.createHash('sha1');
             
                 shasum.update(text);
-                return shasum.digest('base64');
+                return shasum.digest('hex');
             },
         tosave: function (name, text) {
                 var self = this;
@@ -214,8 +259,7 @@ var checksum = Folder.checksum = {
                      (data[name] === sha) ) {
                     return false; 
                 } else {
-                    data[name] = sha;
-                    return true;
+                    return sha;
                 }
             },
         filename : '',
@@ -268,6 +312,10 @@ var opts = require("nomnom").
             "lprc": {
                 abbr : "l",
                 default : root + sep + "lprc.js",
+            }, 
+            diff : {
+                abbr: "d", 
+                flag:true
             }
         
         }).

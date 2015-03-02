@@ -180,6 +180,8 @@ actually initiates the compiling. It receives the parsed arguments.
         folder.cache = args.cache;
         folder.src = args.src;
 
+        _"diff"
+
         var i, n = args.file.length;
         for (i = 0; i < n; i += 1) {
             emitname = colon.escape(args.file[i]);
@@ -216,13 +218,15 @@ saving one.
             var fpath = folder.build;
             var fullname = fpath + sep + filename; 
             fpath = fpath + (firstpart ? sep + firstpart : "");
-            if (folder.checksum.tosave(fullname, text) ) {
+            var sha;
+            if ( (sha = folder.checksum.tosave(fullname, text) ) ) {
                 fs.writeFile(fullname, text, 
                     {encoding:encoding},  function (err) {
                     if (err) {
                         _":mkdirp";
                     } else{
                         folder.log("File " + fullname + " saved");
+                        folder.checksum[fullname] = sha; 
                     }
                 });
             } else {
@@ -321,6 +325,10 @@ to overwrite whatever they like in it though ideally they play nice.
         "lprc": {
             abbr : "l",
             default : root + sep + "lprc.js",
+        }, 
+        diff : {
+            abbr: "d", 
+            flag:true
         }
 
     }
@@ -535,6 +543,12 @@ should be streamed to their destinations, whether to/from the cache or not.
 If there is a zipurl, then if the url is not cached, then the zipurl is
 downloaded (after checking the cache) instead and unzipped with the filename 
 
+Using jszip, we can just leave the zip file in the cache and extract the files
+as needed easily enough. 
+
+We should also record its saving just like any other file saving in the
+destination so that we don't rewrite unnecessarily. 
+
 `[out filename](url "downsave: zipurl")`
 
 
@@ -712,8 +726,7 @@ Does it need saving?
              (data[name] === sha) ) {
             return false; 
         } else {
-            data[name] = sha;
-            return true;
+            return sha;
         }
     }
 
@@ -724,7 +737,7 @@ Does it need saving?
         var shasum = crypto.createHash('sha1');
 
         shasum.update(text);
-        return shasum.digest('base64');
+        return shasum.digest('hex');
     }
 
 
@@ -741,6 +754,64 @@ Does it need saving?
       console.log(d + '  ' + filename);
     });
 
+
+## Diff
+
+This deals with the diffing. Instead of saving, we check to see if there are
+differences and then report the differences. 
+
+First we need to install it. 
+
+    if (args.diff) {
+        gcd.action("save file", _":do the diff");
+    }
+ 
+[do the diff]()
+        
+    function(text, evObj) {
+        console.log("hey");
+        var gcd = evObj.emitter;
+        var folder = gcd.parent;
+        var colon = folder.colon;
+        var emitname = evObj.pieces[0];
+        var filename = colon.restore(emitname);
+        var firstpart = filename.split(sep).slice(0, -1).join(sep);
+        var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+        var fpath = folder.build;
+        var fullname = fpath + sep + filename; 
+        fpath = fpath + (firstpart ? sep + firstpart : "");
+        if (folder.checksum.tosave(fullname, text) ) {
+            if (folder.checksum.data.hasOwnProperty(fullname) ) {
+                _":diff it"
+            } else {
+                folder.log("New file " + fullname + ":\n\n" + text +
+                    "\n----\n");
+            }
+        } else {
+            folder.log("File " + fullname + " unchanged.");
+        }
+    }
+
+[diff it]()
+
+    fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
+        var result, ret; 
+        if (err) {
+            folder.log("Could not read old file" + fullname + 
+                " despite it being in the checksum file." );
+        } else {
+            ret = '';
+            result = diff.diffLines(oldtext, text);
+            result.forEach(function (part) {
+                if (part.added) {
+                    ret += colors.green(part.value);
+                } else if (part.removed) {
+                    ret += colors.red(part.value);
+                }
+            });
+            folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+        }
+    });
 
 
 ## README
