@@ -1,3 +1,10 @@
+# Backslashing
+
+This tests the backslashing numbering scheme. 
+
+    \1_"awesome"
+
+[out](# "save:")
 #!/usr/bin/env node
 
 /*global process, require, console*/

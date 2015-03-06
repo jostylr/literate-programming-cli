@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.5.0")
+# [literate-programming-cli](# "version:0.6.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -62,20 +62,10 @@ files.
 
     Folder.cache.firstLoad(args.cache, args.cachefile);
 
-    var folder = new Folder();
+    Folder.process(args);
 
-    folder.Folder = Folder;
-    
-    folder.checksum = Object.create(Folder.checksum);
-    folder.checksum.data = {};
+    process.on('exit', Folder.exit());
 
-    folder.checksum.firstLoad(args.build, args.checksum);
-
-    folder.process(args);
-
-    process.on('exit', function () {
-        folder.exit();
-    });
 
 
  
@@ -131,41 +121,58 @@ something. For example, we could enable logging with the gcd.
     Folder.actions = _"actions";
 
     _"new directives"
+
+    _"new commands"
     
     Folder.prototype.encoding = "utf8";
 
-    Folder.prototype.exit = _":exit";
+    Folder.exit = _":exit";
 
-    Folder.prototype.process = _":process";
+    Folder.process = _":process";
 
     Folder.cache = _"cache";
 
     var checksum = Folder.checksum = _"checksum";
+
+    Folder.folders = {};
+
+    _"fcd"
 
 
 
     
 [exit]()
 
-The function to run on exiting. 
+The function to run on exiting. This actually is a function closure around the
+event. 
 
     function () {
-        var folder = this;
-        var arr = folder.reportwaits();
-        if ( arr.length) {
-            console.log(arr.join("\n"));
-        } else {
-            console.log("Nothing reports waiting.");
-        }
+        var Folder  = this; 
 
-        Folder.cache.finalSave();
+         return function () {
+            var build, folder, arr;
+            var folders = Folder.folders; 
 
-        folder.checksum.finalSave();
+            for ( build in folders) {
+                folder = folders[build];
+                arr = folder.reportwaits();
+            
+                if ( arr.length) {
+                    console.log(build + "\n---\n" + arr.join("\n") + "\n\n");
+                } else {
+                    console.log(build + ": Nothing reports waiting.");
+                }
 
-        //console.log(folder, folder.gcd);
-        
-        //console.log(folder.scopes);
-        //console.log(gcd.log.logs().join('\n')); 
+                folder.cache.finalSave();
+
+                folder.checksum.finalSave();
+
+                //console.log(folder, folder.gcd);
+                
+                //console.log(folder.scopes);
+                //console.log(gcd.log.logs().join('\n')); 
+            }
+        };
     }
 
 
@@ -175,26 +182,92 @@ This is what happens after all the initiation and parsing of cli options. It
 actually initiates the compiling. It receives the parsed arguments. 
 
     function (args) {
-        var folder = this;
-        var gcd = folder.gcd;
-        var colon = folder.colon;
-        var emitname;
+        var Folder = this;
+        var builds = args.build;
+        var build, folder, gcd, colon, emitname, i, n, j, m;
+        var fcd = Folder.fcd;
 
-        folder.build = args.build;
-        folder.cache = args.cache;
-        folder.src = args.src;
+        var diffsaver = _"diff:f";
 
-        _"diff"
+        var outsaver = _"stdout:f";
 
-        var i, n = args.file.length;
+        var stdinf = _":stdin";
+
+        n = builds.length;
         for (i = 0; i < n; i += 1) {
-            emitname = colon.escape(args.file[i]);
-            gcd.emit("initial document:" +  emitname);
-        }
+            build = args.build[i];
+            folder = new Folder();
+            Folder.folders[build] = folder;
+
+            _":assign vars"
     
+            _":checksum cache"
+            
+            _"stdout"
+
+            _"diff"
+
+            _":compile docs"
+
+
+        }
     }
 
+[assign vars]()
+
+    folder.build = build;
+    folder.cache = args.cache;
+    folder.src = args.src;
+    gcd = folder.gcd;
+    colon = folder.colon;
+
+[checksum cache]() 
+
     
+    folder.cache = Folder.cache;
+
+    folder.checksum = Object.create(Folder.checksum);
+    folder.checksum.data = {};
+    folder.checksum.firstLoad(build, args.checksum);
+            
+[compile docs]()
+
+Need to check for no files and then use standard input. All of this shouldbe
+converted to use Folder.fcd.cache....need to implement that in event-when.
+
+    m = args.file.length;
+    if (m > 0) {
+        for (j = 0; j < m; j += 1) {
+            emitname = colon.escape(args.file[j]);
+            gcd.emit("initial document:" +  emitname);
+        }
+    } else {
+        fcd.cache("need standard input", "standard input read", stdinf(folder) );
+        
+    }
+ 
+[stdin]()
+
+This is a function that deals with standard input. It takes in folder in the
+loop body and returns a function to be called on return.
+
+    function (folder) {
+        var gcd = folder.gcd;
+   
+
+        return function (data) {
+            var err = data[0];
+            var text = data[1];
+            if (err) {
+                gcd.log("Failure to load standard input or files" + err);
+            } else {
+               folder.newdoc("standard input", text);
+            }
+        };
+    }
+
+
+
 
 ## Actions    
 
@@ -268,20 +341,111 @@ This makes the directory if it does not exist.
      function (data, evObj, src) {
             var gcd = evObj.emitter;
             var folder = gcd.parent;
+            var fcd = folder.Folder.fcd;
             var colon = folder.colon;
             var emitname = evObj.pieces[0];
             var filename = colon.restore(emitname);
             var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
             var fullname = ((typeof src === "string") ? src : folder.src + sep ) +
                  filename;
-            fs.readFile( fullname, {encoding:encoding},  function (err, text) {
-                if (err) {
-                    gcd.emit("error:file not found:" + fullname);
-                } else {
-                    folder.newdoc(emitname, text);
-                }
+            fcd.cache(["read file:" + emitname, [fullname, encoding]], 
+                "file read:" + emitname, function (data) {
+                    var err = data[0];
+                    var text = data[1];
+                    if (err) {
+                        gcd.emit("error:file not read:" + emitname, 
+                            [fullname, err] );
+                    } else {
+                        folder.newdoc(emitname, text);
+                    }
+
             });
      }
+
+     
+      
+### FCD
+
+This manages the folder communication dispatches. 
+
+    Folder.fcd.on("read file", _":read file");
+    Folder.fcd.on("need standard input", _":standard input");
+    Folder.fcd.on("exec requested", _":execute command");
+
+
+[read file]() 
+
+    function (data, evObj) {
+       var fullname = data[0];
+       var encoding = data[1];
+       var emitname = evObj.pieces[0];
+       var fcd = evObj.emitter;
+
+        fs.readFile( fullname, {encoding:encoding},  function (err, text) {
+            fcd.emit("file read:" + emitname, [err, text]);
+        });
+    }
+
+[standard input]()
+
+Code largely taken from [sindresorhus](https://github.com/sindresorhus/get-stdin/blob/master/index.js) though it is basically also what is in the node docs.  
+
+
+    function (data, evObj) {
+        var fcd = evObj.emitter;
+
+       	var stdin = process.stdin;
+      	var ret = '';
+
+    	stdin.setEncoding('utf8');
+
+	    stdin.on('readable', function () {
+		    var chunk;
+
+
+		    while ( (chunk = stdin.read()) ) {
+			    ret += chunk;
+		    }
+
+	    });
+
+    	stdin.on('end', function () {
+	    	fcd.emit("standard input read", [null, ret]);
+	    });
+
+        stdin.on('error', function () {
+            fcd.emit("standard input read", ["error", ret]);
+        });
+    }
+
+[execute command]()
+
+This is the cached form of a command line execution with incoming text. 
+
+    function (data, evObj) {
+        var fcd = evObj.emitter;
+        var emitname = evObj.pieces[0];
+        var cmd = data[0];
+        var text = data[1];
+
+        try {
+            var child = exec(cmd, 
+                function (err, stdout, stderr) {
+                    fcd.emit("exec finished:" + emitname, [err || stderr, stdout]);
+                });
+            if (text) {
+                child.stdin.write(text);
+                child.stdin.end();
+            }
+        } catch (e) {
+            fcd.emit("exec finished:" + emitname, [ e.name + ":" + e.message +"\n"  + cmd + 
+             "\n\nACTING ON:\n" + text]);
+        }
+    }
+
+
+[download]()
+ 
       
 ## Encodings
 
@@ -317,10 +481,10 @@ to overwrite whatever they like in it though ideally they play nice.
 
     {
         "file": {
-            abbr : "f",
             default : [],
             position : 0,
             list : true,
+            help : "files to start with in compiling",
         }, 
         "encoding" : _"encodings:option",
         _":dir",
@@ -329,11 +493,23 @@ to overwrite whatever they like in it though ideally they play nice.
         "lprc": {
             abbr : "l",
             default : root + sep + "lprc.js",
+            help : "specify an alternate lprc.js file"
         }, 
         diff : {
             abbr: "d", 
-            flag:true
+            flag:true,
+            help : "include to have diff only output, no saving"
+        },
+        out : {
+            abbr : "o",
+            flag : true,
+            help : "save no file, piping to standard out instead"
+        },
+        flag : {
+            abbr : "f",
+            help : "flags to pass to use in if conditions" 
         }
+
 
     }
 
@@ -344,15 +520,23 @@ This sets up the default directories.
 
     build : {
         abbr: "b",
-        default : root + sep + "build"
+        list: true,
+        default : [root + sep + "build"],
+        help : "Specify the build directory." +
+            " Specifying multiple builds do multiple builds." +
+            " The build is passed in as a flag per build." 
+        
+
     },
     src : {
         abbr: "s",
-        default : root + sep + "src"
+        default : root + sep + "src",
+        help: "Where to load inernally requested litpro documents from"
     },
     cache : {
         abbr : "c",
-        default : root + sep + "cache"
+        default : root + sep + "cache",
+        help: "A place to stored downloaded files for caching"
     }
     
 
@@ -386,11 +570,74 @@ instantiation.
 
 So here we define new commands that only make sense in command line context. 
 
-* execute Executes a command line with the input being the std input? 
+    Folder.async("exec", _"execute");
+
+    Folder.async("execfresh", _"execute:fresh");
+
+* execute Executes a command line with the input being the std input?
 
 ### execute
 
-This executes a command on the command line and returns the text. 
+This executes a command on the command line, using the incoming text as
+standard input and taking standard out as what should be passed along. 
+
+This is of the form `|exec commandline and args, second one, ...` 
+
+Since the command line uses the pipe character in the same way litpro does
+(well, litpro uses the same pipe...) 
+
+Think using grep (not that you would need that one).
+
+This caches the command, sha1ing the incoming text and arguments; same text, same result is
+the idea. 
+
+    function (text, args, callback  ) {
+        var doc = this;
+
+        var cmd =  args.join(" | ");
+
+
+        var shasum = crypto.createHash('sha1');
+
+        shasum.update(text + "\n---\n" + cmd);
+        var emitname = shasum.digest('hex');
+
+
+        doc.parent.Folder.fcd.cache(
+            ["exec requested:" + emitname, [cmd, text]],
+            "exec finished:" + emitname,
+            function (data) {
+                var err = data[0];
+                var stdout = data[1];
+
+                callback(err, stdout);
+            });
+    }
+
+
+[fresh]() 
+
+This does not cache the command. 
+
+    function (text, args, callback  ) {
+        var doc = this;
+
+        var cmd =  args.join(" | ");
+
+        try {
+            var child = exec(cmd, 
+                function (err, stdout, stderr) {
+                    callback(err || stderr , stdout);
+                });
+            if (text) {
+                child.stdin.write(text);
+                child.stdin.end();
+            }
+        } catch (e) {
+            callback(e.name + ":" + e.message +"\n"  + cmd + 
+             "\n\nACTING ON:\n" + text);
+        }
+    }
 
 
 
@@ -414,7 +661,7 @@ This executes a command on the command line and returns the text.
 
 
 This is the directive for executing a command on the command line and storing
-it in a variable.
+it in a variable. There is no piping to standard in. Think ls. 
     
 `[name](# "execute:command line command")`
 
@@ -459,6 +706,8 @@ This is the directive for reading a file and storing its text.
             if (err) {
                gcd.emit("error:readfile", [filename, name, err]); 
             } else {
+                
+
                 doc.store(name, value);
             }
         });
@@ -481,7 +730,7 @@ encoding from the server is whatever it is.
         var name = doc.colon.escape(args.link);
         var url = args.href;
         var encoding = args.input || doc.parent.encoding;
-        var cache = doc.parent.Folder.cache;
+        var cache = doc.parent.cache;
        
         if (cache.has(url) ) {
             _":load cache"
@@ -699,7 +948,8 @@ Wrtite out the
 This is the object that handles the argument parsing options.
 
     cachefile : {
-        default : ".cache"
+        default : ".cache",
+        help : "List of files already downloaded. Stored in cache directory"
     }
 
 
@@ -723,7 +973,9 @@ This holds the checksums of
 This is the object that handles the argument parsing options.
 
     checksum : {
-        default : ".checksum"
+        default : ".checksum",
+        help: "A list of the files and their sha1 sums to avoid rewriting." +
+            "Stored in build directory"
     }
 
 [to save]()
@@ -768,6 +1020,38 @@ Does it need saving?
       console.log(d + '  ' + filename);
     });
 
+### Stdout
+
+We also allow for standard output to be the result if that option is selected. 
+
+All we need to do is replace the saving function with one that logs it to the
+console. 
+
+    if (args.out) {
+       gcd.action("save file", outsaver); 
+    }
+
+
+[f]()
+
+This simply logs the file. 
+
+
+    function(text, evObj) {
+        var gcd = evObj.emitter;
+        var folder = gcd.parent;
+        var colon = folder.colon;
+        var emitname = evObj.pieces[0];
+        var filename = colon.restore(emitname);
+        var firstpart = filename.split(sep).slice(0, -1).join(sep);
+        var fpath = folder.build;
+        var fullname = fpath + sep + filename; 
+        fpath = fpath + (firstpart ? sep + firstpart : "");
+        
+        folder.log("FILE: " + fullname + ":\n\n" + text +
+                    "\n----\n");
+    }
+
 
 ## Diff
 
@@ -777,10 +1061,10 @@ differences and then report the differences.
 First we need to install it. 
 
     if (args.diff) {
-        gcd.action("save file", _":do the diff");
+        gcd.action("save file", diffsaver);
     }
  
-[do the diff]()
+[f]()
         
     function(text, evObj) {
         var gcd = evObj.emitter;
@@ -936,7 +1220,7 @@ The requisite npm package file.
         "colors": "^1.0.3",
         "diff": "^1.2.2",
         "iconv-lite": "^0.4.7",
-        "literate-programming-lib": "^1.4.0",
+        "literate-programming-lib": "^1.4.3",
         "mkdirp": "^0.5.0",
         "needle": "^0.7.11",
         "nomnom": "^1.8.1"
