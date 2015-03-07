@@ -136,6 +136,8 @@ something. For example, we could enable logging with the gcd.
 
     Folder.folders = {};
 
+    Folder.execseparator = "!*!";
+
     _"fcd"
 
 
@@ -371,6 +373,7 @@ This manages the folder communication dispatches.
     Folder.fcd.on("read file", _":read file");
     Folder.fcd.on("need standard input", _":standard input");
     Folder.fcd.on("exec requested", _":execute command");
+    Folder.fcd.on("dir exec requested", _":dir execute");
 
 
 [read file]() 
@@ -440,6 +443,28 @@ This is the cached form of a command line execution with incoming text.
         } catch (e) {
             fcd.emit("exec finished:" + emitname, [ e.name + ":" + e.message +"\n"  + cmd + 
              "\n\nACTING ON:\n" + text]);
+        }
+    }
+
+
+[dir execute]() 
+
+
+This is the cached form of a command line execution from a directive. 
+
+    function (cmd, evObj) {
+        var fcd = evObj.emitter;
+        var fcdname = evObj.pieces[0];
+
+
+        try {
+            var child = exec(cmd, 
+                function (err, stdout, stderr) {
+                    fcd.emit("dir exec done:" + fcdname, [err || stderr, stdout]);
+                });
+        } catch (e) {
+            fcd.emit("dir exec done:" + fcdname, 
+                [ e.name + ":" + e.message +"\n"  + cmd, '' ]);
         }
     }
 
@@ -650,7 +675,8 @@ This does not cache the command.
 * downsave  Download and then save in a file. Uses the cache. Uses streams to
   do this quickly and efficiently. Think images. 
 
-    Folder.directives.execute = _"dir execute";
+    Folder.directives.exec = _"dir execute";
+    Folder.directives.execfresh = _"dir execute:fresh";
     Folder.directives.readfile = _"dir readfile";
     Folder.directives.download = _"dir download";
     Folder.directives.downsave = _"downsave";
@@ -662,26 +688,120 @@ This does not cache the command.
 
 This is the directive for executing a command on the command line and storing
 it in a variable. There is no piping to standard in. Think ls. 
+
+Not really sure how useful this is. Thought it could be useful for things like
+texing a document, but need a way to have directories more accessibe. It might
+be that one just does custom executions. But perhaps this serves as a useful
+example. 
     
-`[name](# "execute:command line command")`
+Piping of the standard output internally can be done by use the separator
+`!*!`. If you happen to need that, you can overwrite Folder.execseparator.
+
+
+`[name](# "exec:command line command")`
 
     function (args) {
         var doc = this;
         var gcd = doc.gcd;
+        var colon = doc.colon;
+        Folder = doc.parent.Folder;
         var command = args.input;
-        var name = doc.colon.escape(args.link);
+        var separ = Folder.execseparator;
+        var ind = command.indexOf(separ);
+        var pipes = '';
+        if (ind !== -1) {
+            pipes = command.slice(ind + separ.length);
+            command = command.slice(0,ind);
+        }
+
+        var name = colon.escape(args.link);
+        var emitname = "exec:"+name;
+        var f;
+
+
+        var fcdname = colon.escape(command); 
+
+        var fcd = Folder.fcd;
+
+        fcd.cache(["dir exec requested:" + fcdname, command],
+            "dir exec done:" + fcdname, 
+            function (data)  {
+                var err = data[0];
+                var stdout = data[1];
+                if (err) {
+                   gcd.emit("error:execute", [command, err]); 
+                } else {
+                    if (stdout) {
+                        _":dealing with stdout"
+                    }
+                }
+            }
+        );
+    }
+
+
+        
+[fresh]() 
+
+This is the version that is not cached. 
+
+
+`[name](# "execfresh:command line command")`
+
+
+    function (args) {
+        var doc = this;
+        var gcd = doc.gcd;
+        var colon = doc.colon;
+        Folder = doc.parent.Folder;
+        var command = args.input;
+        var separ = Folder.execseparator;
+        var ind = command.indexOf(separ);
+        var pipes = '';
+        if (ind !== -1) {
+            pipes = command.slice(ind + separ.length);
+            command = command.slice(0,ind);
+        }
+
+        var name = colon.escape(args.link);
+        var emitname = "execfresh:"+name;
+        var f;
+
 
         exec(command, function (err, stdout, stderr) {
             if (err) {
                gcd.emit("error:execute", [command, err, stderr]); 
             } else {
-                doc.store(name, stdout);
+                if (stdout) {
+                    _":dealing with stdout"
+                }
                 if (stderr) {
                     gcd.emit("error:execute output", [command, stderr]);
                 }
             }
         });
     }
+
+[dealing with stdout]()
+
+So we want to deal with piping if we a value and if we have pipes. 
+
+    if (pipes) {
+        pipes += '"';
+        f = function (data) {
+            if (name) {
+                doc.store(name, data);
+            }
+        };
+        gcd.once("text ready:" + emitname, f);
+        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
+        gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
+    } else {
+        if (name) {
+            doc.store(name, stdout);
+        }
+    }
+
 
 ### Dir Readfile
 

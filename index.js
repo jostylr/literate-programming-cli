@@ -94,23 +94,102 @@ Folder.actions = {"on" : [
         }]]
     };
 
-Folder.directives.execute = function (args) {
+Folder.directives.exec = function (args) {
     var doc = this;
     var gcd = doc.gcd;
+    var colon = doc.colon;
+    Folder = doc.parent.Folder;
     var command = args.input;
-    var name = doc.colon.escape(args.link);
+    var separ = Folder.execseparator;
+    var ind = command.indexOf(separ);
+    var pipes = '';
+    if (ind !== -1) {
+        pipes = command.slice(ind + separ.length);
+        command = command.slice(0,ind);
+    }
 
-    exec(command, function (err, stdout, stderr) {
-        if (err) {
-           gcd.emit("error:execute", [command, err, stderr]); 
-        } else {
-            doc.store(name, stdout);
-            if (stderr) {
-                gcd.emit("error:execute output", [command, stderr]);
+    var name = colon.escape(args.link);
+    var emitname = "exec:"+name;
+    var f;
+
+    var fcdname = colon.escape(command); 
+
+    var fcd = Folder.fcd;
+
+    fcd.cache(["dir exec requested:" + fcdname, command],
+        "dir exec done:" + fcdname, 
+        function (data)  {
+            var err = data[0];
+            var stdout = data[1];
+            if (err) {
+               gcd.emit("error:execute", [command, err]); 
+            } else {
+                if (stdout) {
+                    if (pipes) {
+                        pipes += '"';
+                        f = function (data) {
+                            if (name) {
+                                doc.store(name, data);
+                            }
+                        };
+                        gcd.once("text ready:" + emitname, f);
+                        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
+                        gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
+                    } else {
+                        if (name) {
+                            doc.store(name, stdout);
+                        }
+                    }
+                }
             }
         }
-    });
+    );
 };
+Folder.directives.execfresh = function (args) {
+        var doc = this;
+        var gcd = doc.gcd;
+        var colon = doc.colon;
+        Folder = doc.parent.Folder;
+        var command = args.input;
+        var separ = Folder.execseparator;
+        var ind = command.indexOf(separ);
+        var pipes = '';
+        if (ind !== -1) {
+            pipes = command.slice(ind + separ.length);
+            command = command.slice(0,ind);
+        }
+    
+        var name = colon.escape(args.link);
+        var emitname = "execfresh:"+name;
+        var f;
+    
+        exec(command, function (err, stdout, stderr) {
+            if (err) {
+               gcd.emit("error:execute", [command, err, stderr]); 
+            } else {
+                if (stdout) {
+                    if (pipes) {
+                        pipes += '"';
+                        f = function (data) {
+                            if (name) {
+                                doc.store(name, data);
+                            }
+                        };
+                        gcd.once("text ready:" + emitname, f);
+                        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
+                        gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
+                    } else {
+                        if (name) {
+                            doc.store(name, stdout);
+                        }
+                    }
+                }
+                if (stderr) {
+                    gcd.emit("error:execute output", [command, stderr]);
+                }
+            }
+        });
+    };
 Folder.directives.readfile = function (args) {
         var doc = this;
         var gcd = doc.gcd;
@@ -505,6 +584,8 @@ var checksum = Folder.checksum = {
 
 Folder.folders = {};
 
+Folder.execseparator = "!*!";
+
 Folder.fcd.on("read file", function (data, evObj) {
    var fullname = data[0];
    var encoding = data[1];
@@ -558,6 +639,20 @@ Folder.fcd.on("exec requested", function (data, evObj) {
         } catch (e) {
             fcd.emit("exec finished:" + emitname, [ e.name + ":" + e.message +"\n"  + cmd + 
              "\n\nACTING ON:\n" + text]);
+        }
+    });
+Folder.fcd.on("dir exec requested", function (cmd, evObj) {
+        var fcd = evObj.emitter;
+        var fcdname = evObj.pieces[0];
+    
+        try {
+            var child = exec(cmd, 
+                function (err, stdout, stderr) {
+                    fcd.emit("dir exec done:" + fcdname, [err || stderr, stdout]);
+                });
+        } catch (e) {
+            fcd.emit("dir exec done:" + fcdname, 
+                [ e.name + ":" + e.message +"\n"  + cmd, '' ]);
         }
     });
 
