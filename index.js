@@ -202,8 +202,6 @@ Folder.directives.readfile = function (args) {
         var pipes = args.input.slice(cut+1);
         var f;
     
-        console.log(args.input, cut, encoding, pipes);
-    
         encoding = encoding.trim() || doc.parent.encoding || "utf8";
     
         doc.parent.Folder.fcd.cache(
@@ -215,8 +213,6 @@ Folder.directives.readfile = function (args) {
                 if (err) {
                    gcd.emit("error:readfile", [filename, name, err]); 
                 } else {
-                    console.log(pipes);
-    
                     if (pipes) {
                         pipes += '"';
                         f = function (data) {

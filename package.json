@@ -35,6 +35,8 @@
     "nomnom": "^1.8.1"
   },
   "devDependencies" : {
+    "event-when": "^1.0.0",
+    "tape": "^3.5.0"        
   },
   "scripts" : { 
     "test" : "node ./test.js"

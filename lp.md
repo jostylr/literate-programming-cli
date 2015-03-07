@@ -1378,6 +1378,8 @@ The requisite npm package file.
         "nomnom": "^1.8.1"
       },
       "devDependencies" : {
+        "event-when": "^1.0.0",
+        "tape": "^3.5.0"        
       },
       "scripts" : { 
         "test" : "node ./test.js"
@@ -1394,11 +1396,13 @@ The requisite npm package file.
     node_modules
     build
     cache
+    .checksum
 
 ## npmignore
 
 
     build
+    .checksum
     cache
     tests
     test.js

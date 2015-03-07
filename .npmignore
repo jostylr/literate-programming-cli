@@ -1,4 +1,5 @@
 build
+.checksum
 cache
 tests
 test.js
