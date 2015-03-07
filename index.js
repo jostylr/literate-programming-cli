@@ -193,23 +193,48 @@ Folder.directives.execfresh = function (args) {
 Folder.directives.readfile = function (args) {
         var doc = this;
         var gcd = doc.gcd;
-        var name = doc.colon.escape(args.link);
+        var colon = doc.colon;
+        var name = colon.escape(args.link);
         var filename = args.href; 
+        var emitname = colon.escape(filename);
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
         var pipes = args.input.slice(cut+1);
+        var f;
     
-        encoding = encoding || doc.parent.encoding || "utf8";
+        console.log(args.input, cut, encoding, pipes);
     
-        fs.readFile(filename, {encoding:encoding}, function (err, value) {
-            if (err) {
-               gcd.emit("error:readfile", [filename, name, err]); 
-            } else {
-                
+        encoding = encoding.trim() || doc.parent.encoding || "utf8";
     
-                doc.store(name, value);
+        doc.parent.Folder.fcd.cache(
+            ["read file:" + emitname, [filename, encoding]],
+            "file read:" + emitname,
+            function (data) {
+                var err = data[0];
+                var text = data[1];
+                if (err) {
+                   gcd.emit("error:readfile", [filename, name, err]); 
+                } else {
+                    console.log(pipes);
+    
+                    if (pipes) {
+                        pipes += '"';
+                        f = function (data) {
+                            if (name) {
+                                doc.store(name, data);
+                            }
+                        };
+                        gcd.once("text ready:" + emitname, f);
+                        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
+                        gcd.emit("text ready:" + emitname + colon.v + "0", text);
+                    } else {
+                        if (name) {
+                            doc.store(name, text);
+                        }
+                    } 
+                }
             }
-        });
+        );
     };
 Folder.directives.download = function (args) {
         var doc = this;
@@ -591,6 +616,8 @@ Folder.fcd.on("read file", function (data, evObj) {
    var encoding = data[1];
    var emitname = evObj.pieces[0];
    var fcd = evObj.emitter;
+
+    console.log("hey", fullname);
 
     fs.readFile( fullname, {encoding:encoding},  function (err, text) {
         fcd.emit("file read:" + emitname, [err, text]);

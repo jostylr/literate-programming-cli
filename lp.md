@@ -384,6 +384,8 @@ This manages the folder communication dispatches.
        var emitname = evObj.pieces[0];
        var fcd = evObj.emitter;
 
+        console.log("hey", fullname);
+
         fs.readFile( fullname, {encoding:encoding},  function (err, text) {
             fcd.emit("file read:" + emitname, [err, text]);
         });
@@ -814,24 +816,54 @@ This is the directive for reading a file and storing its text.
     function (args) {
         var doc = this;
         var gcd = doc.gcd;
-        var name = doc.colon.escape(args.link);
+        var colon = doc.colon;
+        var name = colon.escape(args.link);
         var filename = args.href; 
+        var emitname = colon.escape(filename);
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
         var pipes = args.input.slice(cut+1);
+        var f;
 
-        encoding = encoding || doc.parent.encoding || "utf8";
-    
-        fs.readFile(filename, {encoding:encoding}, function (err, value) {
-            if (err) {
-               gcd.emit("error:readfile", [filename, name, err]); 
-            } else {
-                
 
-                doc.store(name, value);
+        encoding = encoding.trim() || doc.parent.encoding || "utf8";
+
+   
+        doc.parent.Folder.fcd.cache(
+            ["read file:" + emitname, [filename, encoding]],
+            "file read:" + emitname,
+            function (data) {
+                var err = data[0];
+                var text = data[1];
+                if (err) {
+                   gcd.emit("error:readfile", [filename, name, err]); 
+                } else {
+                    _":deal with pipes" 
+                }
             }
-        });
+        );
     }
+
+[deal with pipes]()
+
+Really need to abstract common behavior. 
+
+    if (pipes) {
+        pipes += '"';
+        f = function (data) {
+            if (name) {
+                doc.store(name, data);
+            }
+        };
+        gcd.once("text ready:" + emitname, f);
+        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
+        gcd.emit("text ready:" + emitname + colon.v + "0", text);
+    } else {
+        if (name) {
+            doc.store(name, text);
+        }
+    }
+
 
 ### Dir Download
 

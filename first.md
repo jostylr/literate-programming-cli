@@ -10,6 +10,6 @@ This is the first in a long series of litpro.
 
 [first.txt](# "save:")
 
-[some more text](toread.txt "readfile:")
+[some more text](toread.txt "readfile: | sub is, are")
 
 
