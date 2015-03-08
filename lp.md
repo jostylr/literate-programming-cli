@@ -1397,7 +1397,6 @@ The requisite npm package file.
     node_modules
     build
     cache
-    .checksum
 
 ## npmignore
 
