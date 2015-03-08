@@ -19,6 +19,8 @@ compatibility.
 
     _"first test";
 
+    _"no change";
+
 
 ## Make callbacks
 
@@ -71,5 +73,31 @@ This is our first test.
 
     })
 
+## No Change
 
+This makes sure there is no change when, well, there is no change. 
 
+    test('first test', function (t) {
+
+        var gcd = new EvW();
+
+        t.plan(1);
+
+        gcd.on("test", function (data) {
+
+            t.equal(data,
+                "File ./seen/out.txt unchanged.\n" +
+                "./seen: Nothing reports waiting.\n"
+            );
+
+        });
+ 
+        exec("cd tests/notsave;" +
+            " node ../../litpro.js -b seen test.md",
+            cbmaker("test", gcd)
+        );
+            
+
+    })
+
+    

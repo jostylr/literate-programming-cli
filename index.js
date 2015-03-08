@@ -9,9 +9,9 @@ var exec = require('child_process').exec;
 var needle = require('needle');
 var diff = require('diff');
 var colors = require('colors/safe');
-var crypto = require('crypto'); 
+var crypto = require('crypto');
 
-var root = process.cwd();
+var root = process.cwd() + sep;
 
 var loader =  function (data, evObj, src) {
         var gcd = evObj.emitter;
@@ -81,12 +81,14 @@ Folder.actions = {"on" : [
                             }
                         });
                     } else{
-                        folder.log("File " + fullname + " saved");
-                        folder.checksum[fullname] = sha; 
+                        folder.log("File " + 
+                             "./" + fullname.replace(root, "") +
+                            " saved");
+                        folder.checksum.data[fullname] = sha; 
                     }
                 });
             } else {
-                folder.log("File " + fullname + " unchanged.");
+                folder.log("File " + "./" + fullname.replace(root, "")  + " unchanged.");
             }
         }],
         ["report error", function (data, evObj) {
@@ -361,18 +363,20 @@ Folder.exit = function () {
          return function () {
             var build, folder, arr;
             var folders = Folder.folders; 
+                
+            Folder.cache.finalSave();
     
             for ( build in folders) {
                 folder = folders[build];
                 arr = folder.reportwaits();
-            
+           
                 if ( arr.length) {
-                    console.log(build + "\n---\n" + arr.join("\n") + "\n\n");
+                    console.log( "./" + build.replace(root, "") +
+                    "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log(build + ": Nothing reports waiting.");
+                    console.log( "./"  + build.replace(root, "") + 
+                    ": Nothing reports waiting.");
                 }
-    
-                folder.cache.finalSave();
     
                 folder.checksum.finalSave();
     
@@ -542,7 +546,7 @@ Folder.cache = { has : function (name) {
             },
         finalSave : function () {
                 var self = this;
-            
+                    
                 try {
                     fs.writeFileSync(self.filename, JSON.stringify(self.data));
                 } catch (e) {
@@ -572,7 +576,7 @@ var checksum = Folder.checksum = {
             },
         finalSave : function () {
                 var self = this;
-            
+                    
                 try {
                     fs.writeFileSync(self.filename, JSON.stringify(self.data));
                 } catch (e) {
@@ -612,8 +616,6 @@ Folder.fcd.on("read file", function (data, evObj) {
    var encoding = data[1];
    var emitname = evObj.pieces[0];
    var fcd = evObj.emitter;
-
-    console.log("hey", fullname);
 
     fs.readFile( fullname, {encoding:encoding},  function (err, text) {
         fcd.emit("file read:" + emitname, [err, text]);

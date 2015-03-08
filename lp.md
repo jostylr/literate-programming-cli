@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.6.2")
+# [literate-programming-cli](# "version:0.7.0")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -87,9 +87,9 @@ The directories are a bit tricky.
     var needle = require('needle');
     var diff = require('diff');
     var colors = require('colors/safe');
-    var crypto = require('crypto'); 
+    var crypto = require('crypto');
     
-    var root = process.cwd();
+    var root = process.cwd() + sep;
 
     _"preload"
     
@@ -154,18 +154,21 @@ event.
          return function () {
             var build, folder, arr;
             var folders = Folder.folders; 
-
+                
+            Folder.cache.finalSave();
+    
             for ( build in folders) {
                 folder = folders[build];
                 arr = folder.reportwaits();
-            
+           
                 if ( arr.length) {
-                    console.log(build + "\n---\n" + arr.join("\n") + "\n\n");
+                    console.log( "./" + build.replace(root, "") +
+                    "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log(build + ": Nothing reports waiting.");
+                    console.log( "./"  + build.replace(root, "") + 
+                    ": Nothing reports waiting.");
                 }
 
-                folder.cache.finalSave();
 
                 folder.checksum.finalSave();
 
@@ -214,7 +217,7 @@ actually initiates the compiling. It receives the parsed arguments.
 
         }
     }
-
+/
 [assign vars]()
 
     folder.build = build;
@@ -304,12 +307,14 @@ saving one.
                     if (err) {
                         _":mkdirp";
                     } else{
-                        folder.log("File " + fullname + " saved");
-                        folder.checksum[fullname] = sha; 
+                        folder.log("File " + 
+                             "./" + fullname.replace(root, "") +
+                            " saved");
+                        folder.checksum.data[fullname] = sha; 
                     }
                 });
             } else {
-                folder.log("File " + fullname + " unchanged.");
+                folder.log("File " + "./" + fullname.replace(root, "")  + " unchanged.");
             }
         }],
         ["report error", function (data, evObj) {
@@ -383,8 +388,6 @@ This manages the folder communication dispatches.
        var encoding = data[1];
        var emitname = evObj.pieces[0];
        var fcd = evObj.emitter;
-
-        console.log("hey", fullname);
 
         fs.readFile( fullname, {encoding:encoding},  function (err, text) {
             fcd.emit("file read:" + emitname, [err, text]);
@@ -575,8 +578,6 @@ that literate programming is invoked from.
 The lprc.js file should return a function which is also what plugins should
 do. They modify properties on Folder, namely commands, directives, and
 actions. Actions are the gcd events that get applied upon folder creation.  
-
-This will do more searching and alternatives later.
 
 Modifying Folder.postInit allows for a function to process `this` on
 instantiation. 
@@ -1087,7 +1088,7 @@ Wrtite out the
 
     function () {
         var self = this;
-
+            
         try {
             fs.writeFileSync(self.filename, JSON.stringify(self.data));
         } catch (e) {
@@ -1372,7 +1373,7 @@ The requisite npm package file.
         "colors": "^1.0.3",
         "diff": "^1.2.2",
         "iconv-lite": "^0.4.7",
-        "literate-programming-lib": "^1.4.5",
+        "literate-programming-lib": "^1.5.0",
         "mkdirp": "^0.5.0",
         "needle": "^0.7.11",
         "nomnom": "^1.8.1"

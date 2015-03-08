@@ -44,3 +44,26 @@ test('first test', function (t) {
     fs.readFile("tests/first/first.txt", 'utf8', cbmaker("read", gcd) );
 
 });
+
+test('first test', function (t) {
+
+    var gcd = new EvW();
+
+    t.plan(1);
+
+    gcd.on("test", function (data) {
+
+        t.equal(data,
+            "File ./seen/out.txt unchanged.\n" +
+            "./seen: Nothing reports waiting.\n"
+        );
+
+    });
+ 
+    exec("cd tests/notsave;" +
+        " node ../../litpro.js -b seen test.md",
+        cbmaker("test", gcd)
+    );
+        
+
+});
