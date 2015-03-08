@@ -61,8 +61,8 @@ This is our first test.
         
         gcd.when(["compiled", "read"], "test");
         
-        exec("pushd tests/first; rm -rf build/;" +
-            " node ../../litpro.js first.md second.md; popd",
+        exec("cd tests/first; rm -rf build/;" +
+            " node ../../litpro.js first.md second.md",
             cbmaker("saved", gcd)
         );
             
