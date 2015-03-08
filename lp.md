@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.6.1")
+# [literate-programming-cli](# "version:0.6.2")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -1372,7 +1372,7 @@ The requisite npm package file.
         "colors": "^1.0.3",
         "diff": "^1.2.2",
         "iconv-lite": "^0.4.7",
-        "literate-programming-lib": "^1.4.4",
+        "literate-programming-lib": "^1.4.5",
         "mkdirp": "^0.5.0",
         "needle": "^0.7.11",
         "nomnom": "^1.8.1"
