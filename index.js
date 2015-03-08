@@ -708,7 +708,7 @@ var opts = require("nomnom").
             build : {
                 abbr: "b",
                 list: true,
-                default : [root + sep + "build"],
+                default : [root + "build"],
                 help : "Specify the build directory." +
                     " Specifying multiple builds do multiple builds." +
                     " The build is passed in as a flag per build." 
@@ -717,12 +717,12 @@ var opts = require("nomnom").
             },
             src : {
                 abbr: "s",
-                default : root + sep + "src",
+                default : root + "src",
                 help: "Where to load inernally requested litpro documents from"
             },
             cache : {
                 abbr : "c",
-                default : root + sep + "cache",
+                default : root + "cache",
                 help: "A place to stored downloaded files for caching"
             },
             cachefile : {
@@ -736,7 +736,7 @@ var opts = require("nomnom").
             },
             "lprc": {
                 abbr : "l",
-                default : root + sep + "lprc.js",
+                default : root + "lprc.js",
                 help : "specify an alternate lprc.js file"
             }, 
             diff : {

@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.7.0")
+# [literate-programming-cli](# "version:0.7.1")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -522,7 +522,7 @@ to overwrite whatever they like in it though ideally they play nice.
         _"checksum:cli options",
         "lprc": {
             abbr : "l",
-            default : root + sep + "lprc.js",
+            default : root + "lprc.js",
             help : "specify an alternate lprc.js file"
         }, 
         diff : {
@@ -551,7 +551,7 @@ This sets up the default directories.
     build : {
         abbr: "b",
         list: true,
-        default : [root + sep + "build"],
+        default : [root + "build"],
         help : "Specify the build directory." +
             " Specifying multiple builds do multiple builds." +
             " The build is passed in as a flag per build." 
@@ -560,12 +560,12 @@ This sets up the default directories.
     },
     src : {
         abbr: "s",
-        default : root + sep + "src",
+        default : root + "src",
         help: "Where to load inernally requested litpro documents from"
     },
     cache : {
         abbr : "c",
-        default : root + sep + "cache",
+        default : root + "cache",
         help: "A place to stored downloaded files for caching"
     }
     
