@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.7.2")
+# [literate-programming-cli](# "version:0.7.3; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -19,10 +19,10 @@ lprc.js by modifying args.files.
 * [litpro.js](#cli "save: | jshint") The literate program compiler is activated by a command line program.
 * [index.js](#module "save: | jshint") This is the module which can then be
   used for making further command line clients with other functionality. 
-* [README.md](#readme "save:| clean raw") The standard README.
-* [package.json](#npm-package "save: json  | jshint") The requisite package file for a npm project. 
-* [TODO.md](#todo "save: | clean raw") A list of growing and shrinking items todo.
-* [LICENSE-MIT](#license-mit "save: | clean raw") The MIT license as I think that is the standard in the node community. 
+* [README.md](#readme "save:| raw ## README, !--- | sub \n\ #, # |trim ") The standard README.
+* [package.json](#npm-package "save: | jshint") The requisite package file for a npm project. 
+* [TODO.md](#todo "save: | raw ## TODO, !--- ") A list of growing and shrinking items todo.
+* [LICENSE-MIT](#license-mit "save:  ") The MIT license as I think that is the standard in the node community. 
 * [.npmignore](#npmignore "save: ")
 * [.gitignore](#gitignore "save: ")
 * [.travis.yml](#travis "save: ")
@@ -140,8 +140,6 @@ something. For example, we could enable logging with the gcd.
 
     _"fcd"
 
-
-
     
 [exit]()
 
@@ -189,7 +187,7 @@ actually initiates the compiling. It receives the parsed arguments.
     function (args) {
         var Folder = this;
         var builds = args.build;
-        var build, folder, gcd, colon, emitname, i, n, j, m;
+        var build, folder, gcd, colon, emitname, i, n, j, m, k, o;
         var fcd = Folder.fcd;
 
         var diffsaver = _"diff:f";
@@ -225,6 +223,11 @@ actually initiates the compiling. It receives the parsed arguments.
     folder.src = args.src;
     gcd = folder.gcd;
     colon = folder.colon;
+    folder.flags[build] = true;
+    o = args.flag.length;
+    for (k = 0; k < o; k+=1) {
+        folder.flags[args.flag[k]] = true;
+    }
 
 [checksum cache]() 
 
@@ -307,19 +310,18 @@ saving one.
                     if (err) {
                         _":mkdirp";
                     } else{
-                        folder.log("File " + 
-                             "./" + fullname.replace(root, "") +
-                            " saved");
+                        folder.log("SAVED: " + 
+                             "./" + fullname.replace(root, "") );
                         folder.checksum.data[fullname] = sha; 
                     }
                 });
             } else {
-                folder.log("File " + "./" + fullname.replace(root, "")  + " unchanged.");
+                folder.log("UNCHANGED " + "./" + fullname.replace(root, "")  );
             }
         }],
         ["report error", function (data, evObj) {
             console.log(evObj.ev + (data ? " INFO: " + data : "") );
-        }]]
+        }] ]
     }
 
 [mkdirp]()
@@ -537,7 +539,8 @@ to overwrite whatever they like in it though ideally they play nice.
         },
         flag : {
             abbr : "f",
-            help : "flags to pass to use in if conditions" 
+            help : "flags to pass to use in if conditions",
+            default : []
         }
 
 
@@ -669,7 +672,7 @@ This does not cache the command.
 
 
 
-## New Directives
+## new directives
 
 * execute which takes in a string as the title and executes, returning the
   output stored in the variable named in the link thext. 
@@ -678,12 +681,13 @@ This does not cache the command.
 * downsave  Download and then save in a file. Uses the cache. Uses streams to
   do this quickly and efficiently. Think images. 
 
-    Folder.directives.exec = _"dir execute";
-    Folder.directives.execfresh = _"dir execute:fresh";
-    Folder.directives.readfile = _"dir readfile";
-    Folder.directives.download = _"dir download";
-    Folder.directives.downsave = _"downsave";
-
+```
+Folder.directives.exec = _"dir execute";
+Folder.directives.execfresh = _"dir execute:fresh";
+Folder.directives.readfile = _"dir readfile";
+Folder.directives.download = _"dir download";
+Folder.directives.downsave = _"downsave";
+```
 
 
 ### Dir Execute
@@ -828,6 +832,7 @@ This is the directive for reading a file and storing its text.
 
 
         encoding = encoding.trim() || doc.parent.encoding || "utf8";
+
 
    
         doc.parent.Folder.fcd.cache(
@@ -1266,11 +1271,12 @@ First we need to install it.
     });
 
 
+[off](# "block:")
+
 ## README
 
 
-literate-programming-cli   
- ====================
+ # literate-programming-cli   
 
 This is the command line client for literate-programming. 
 
@@ -1289,7 +1295,7 @@ The various flags are
   encoding supported by iconv-lite works. To override that behavior per loaded
   file from a document, one can put the encoding between the colon and pipe in
   the directive title. This applies to both reading and writing. 
-* -f, --file A specified file to process. It is possible to have multiple
+* --file A specified file to process. It is possible to have multiple
   files, each proceeded by an option. Also any unclaimed arguments will be
   assumed to be a file that gets added to the list. 
 * -l, --lprc This specifies the lprc.js file to use. None need not be
@@ -1300,22 +1306,30 @@ The various flags are
   does not exist. Specifying . will use the current directory. 
 * -s, --src  The source directory to look for files from load directives. The
   files specified on the command line are used as is while those loaded from
-  those files are prefixed. Shell tab completion is a reaoson for this
+  those files are prefixed. Shell tab completion is a reason for this
   difference. 
 * -c, --cache The cache is a place for assets downloaded from the web.
 * --cachefile This gives an alternate name for the cache file that registers
   what is downloaded. Default is `.cache`
+* --checksum This gives an alternate name for the file that lists the hash
+  for the generate files. If the compiled text matches, then it is not
+  written. Default is `.checksum` stored in the build directory.
 * -d, --diff This computes the difference between each files from their
   existing versions. There is no saving of files. 
+* -o, --out This directs all saved files to standard out; no saving of
+  compiled texts will happen. Other saving of files could happen; this just
+  prevents those files being saved by the save directive from being saved. 
+* -f, --flag This passes in flags that can be used for conditional branching
+  within the literate programming. For example, one could have a production
+  flag that minimizes the code before saving. 
 
-    
-
-
+ 
 
  ## LICENSE
 
 [MIT-LICENSE](https://github.com/jostylr/literate-programming/blob/master/LICENSE-MIT)
 
+!---
 
 
 ## TODO
@@ -1328,7 +1342,7 @@ readfile, directory, writefile commands for use from a litpro doc.
 maybe a built in watcher program, using nodemon?  
 command line: read file, readdir, write file, file encodings, curling, 
 
-plugins: version--npm stuff, jshint, jstidy, jade, markdown,
+plugins: jshint, jstidy, jade, markdown,
 
 development versus deployment? Maybe manage it with different lprc files. So
 default is development, but then one production ready, switch to lprc-prod.js
@@ -1336,32 +1350,35 @@ which could send to a different build directory. Also minify commands, etc.,
 could be available in both, but changed so that in development they are a
 passthru noop. 
 
+!---
+
+[on](# "block:")
+
 ## NPM package
 
 The requisite npm package file. 
 
-[](# "json") 
 
     {
-      "name": "DOCNAME",
-      "description": "A literate programming compile script. Write your program in markdown.",
-      "version": "DOCVERSION",
-      "homepage": "https://github.com/jostylr/literate-programming-cli",
+      "name": "_`g::docname`",
+      "description": "_`g::tagline`",
+      "version": "_`g::docversion`",
+      "homepage": "https://github.com/_`g::gituser`/_`g::docname`",
       "author": {
-        "name": "James Taylor",
-        "email": "jostylr@gmail.com"
+        "name": "_`g::authorname`",
+        "email": "_`g::authoremail`"
       },
       "repository": {
         "type": "git",
-        "url": "git://github.com/jostylr/literate-programming-cli.git"
+        "url": "git://github.com/_`g::gituser`/_`g::docname`.git"
       },
       "bugs": {
-        "url": "https://github.com/jostylr/literate-programming-cli/issues"
+        "url": "https://github.com/_`g::gituser`/_`g::docname`/issues"
       },
       "licenses": [
         {
           "type": "MIT",
-          "url": "https://github.com/jostylr/literate-programming-cli/blob/master/LICENSE-MIT"
+          "url": "https://github.com/_`g::gituser`/_`g::docname`/blob/master/LICENSE-MIT"
         }
       ],
       "main": "index.js",
@@ -1369,18 +1386,10 @@ The requisite npm package file.
         "node": ">=0.10"
       },
       "dependencies":{
-        "checksum": "^0.1.1",
-        "colors": "^1.0.3",
-        "diff": "^1.2.2",
-        "iconv-lite": "^0.4.7",
-        "literate-programming-lib": "^1.5.1",
-        "mkdirp": "^0.5.0",
-        "needle": "^0.7.11",
-        "nomnom": "^1.8.1"
+        _"g::npm dependencies"
       },
       "devDependencies" : {
-        "event-when": "^1.0.0",
-        "tape": "^3.5.0"        
+        _"g::npm dev dependencies"
       },
       "scripts" : { 
         "test" : "node ./test.js"
@@ -1397,10 +1406,12 @@ The requisite npm package file.
     node_modules
     build
     cache
+    old
 
 ## npmignore
 
 
+    old
     build
     .checksum
     cache
@@ -1426,27 +1437,35 @@ A travis.yml file for continuous test integration!
 ## LICENSE MIT
 
 
-The MIT License (MIT)
-Copyright (c) 2015 James Taylor
+    The MIT License (MIT)
+    Copyright (c) _"g::year" _"g::authorname"
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
 
-The software is provided "as is", without warranty of any kind, express or
-implied, including but not limited to the warranties of merchantability,
-fitness for a particular purpose and noninfringement. In no event shall the
-authors or copyright holders be liable for any claim, damages or other
-liability, whether in an action of contract, tort or otherwise, arising from,
-out of or in connection with the software or the use or other dealings in the
-software.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
 
 
 ## Change Log
+
+
+
+[James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
+    deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, iconv-lite 0.4.7, 
+        literate-programming-lib 1.5.1, mkdirp 0.5.0, needle 0.7.11,
+        nomnom 1.8.1;
+    dev: event-when 1.0.0, litpro-jshint 0.1.0, tape 3.5.0 ")
 

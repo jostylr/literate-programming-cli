@@ -4,14 +4,14 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 
 var cbmaker = function (evt, gcd) {
-        return function (err, data) {
-            if (err) {
-                console.log(err);
-            } else {
-                gcd.emit(evt, data);
-            }
-        };
-    }   ;
+    return function (err, data) {
+        if (err) {
+            console.log(err);
+        } else {
+            gcd.emit(evt, data);
+        }
+    };
+}   ;
 
 test('first test', function (t) {
 
@@ -54,12 +54,12 @@ test('first test', function (t) {
     gcd.on("test", function (data) {
 
         t.equal(data,
-            "File ./seen/out.txt unchanged.\n" +
+            "UNCHANGED ./seen/out.txt\n" +
             "./seen: Nothing reports waiting.\n"
         );
 
     });
- 
+
     exec("cd tests/notsave;" +
         " node ../../litpro.js -b seen test.md",
         cbmaker("test", gcd)

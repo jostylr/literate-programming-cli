@@ -86,7 +86,7 @@ This makes sure there is no change when, well, there is no change.
         gcd.on("test", function (data) {
 
             t.equal(data,
-                "File ./seen/out.txt unchanged.\n" +
+                "UNCHANGED ./seen/out.txt\n" +
                 "./seen: Nothing reports waiting.\n"
             );
 
