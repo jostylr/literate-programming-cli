@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.7.3; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.7.4; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -1465,7 +1465,7 @@ A travis.yml file for continuous test integration!
 
 [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, iconv-lite 0.4.7, 
-        literate-programming-lib 1.5.1, mkdirp 0.5.0, needle 0.7.11,
+        literate-programming-lib 1.5.2, mkdirp 0.5.0, needle 0.7.11,
         nomnom 1.8.1;
     dev: event-when 1.0.0, litpro-jshint 0.1.0, tape 3.5.0 ")
 
