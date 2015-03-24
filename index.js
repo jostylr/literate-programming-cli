@@ -80,12 +80,14 @@ Folder.actions = {"on" : [
                     });
                 } else{
                     folder.log("SAVED: " + 
-                         "./" + fullname.replace(root, "") );
+                         "./" + fullname.replace(root, "").
+                            replace(/^\.\//, '' ) );
                     folder.checksum.data[fullname] = sha; 
                 }
             });
         } else {
-            folder.log("UNCHANGED " + "./" + fullname.replace(root, "")  );
+            folder.log("UNCHANGED " + "./" + fullname.replace(root, ""). 
+                            replace(/^\.\//, '' ) );
         }
     }],
     ["report error", function (data, evObj) {
@@ -375,11 +377,12 @@ Folder.exit = function () {
             arr = folder.reportwaits();
        
             if ( arr.length) {
-                console.log( "./" + build.replace(root, "") +
+                console.log( "STILL WAITING: ./" + build.replace(root, "").
+                    replace(/\.$/, '') +
                 "\n---\n" + arr.join("\n") + "\n\n");
             } else {
-                console.log( "./"  + build.replace(root, "") + 
-                ": Nothing reports waiting.");
+                console.log( "DONE: ./"  + build.replace(root, "").  
+                    replace(/\.$/, '') );
             }
 
 

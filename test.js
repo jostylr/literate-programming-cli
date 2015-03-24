@@ -55,7 +55,7 @@ test('first test', function (t) {
 
         t.equal(data,
             "UNCHANGED ./seen/out.txt\n" +
-            "./seen: Nothing reports waiting.\n"
+            "DONE: ./seen\n"
         );
 
     });

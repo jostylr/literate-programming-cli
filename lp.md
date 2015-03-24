@@ -160,11 +160,12 @@ event.
                 arr = folder.reportwaits();
            
                 if ( arr.length) {
-                    console.log( "./" + build.replace(root, "") +
+                    console.log( "STILL WAITING: ./" + build.replace(root, "").
+                        replace(/\.$/, '') +
                     "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log( "./"  + build.replace(root, "") + 
-                    ": Nothing reports waiting.");
+                    console.log( "DONE: ./"  + build.replace(root, "").  
+                        replace(/\.$/, '') );
                 }
 
 
@@ -311,12 +312,14 @@ saving one.
                         _":mkdirp";
                     } else{
                         folder.log("SAVED: " + 
-                             "./" + fullname.replace(root, "") );
+                             "./" + fullname.replace(root, "").
+                                replace(/^\.\//, '' ) );
                         folder.checksum.data[fullname] = sha; 
                     }
                 });
             } else {
-                folder.log("UNCHANGED " + "./" + fullname.replace(root, "")  );
+                folder.log("UNCHANGED " + "./" + fullname.replace(root, ""). 
+                                replace(/^\.\//, '' ) );
             }
         }],
         ["report error", function (data, evObj) {
@@ -1459,11 +1462,10 @@ A travis.yml file for continuous test integration!
     SOFTWARE.
 
 
-## Change Log
 
 
 
-[James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
+by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, iconv-lite 0.4.7, 
         literate-programming-lib 1.5.2, mkdirp 0.5.0, needle 0.7.11,
         nomnom 1.8.1;

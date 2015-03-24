@@ -87,7 +87,7 @@ This makes sure there is no change when, well, there is no change.
 
             t.equal(data,
                 "UNCHANGED ./seen/out.txt\n" +
-                "./seen: Nothing reports waiting.\n"
+                "DONE: ./seen\n"
             );
 
         });
