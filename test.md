@@ -6,6 +6,21 @@ compatibility.
 
 
 * [test.js](#the-test-framework "save: |jshint")
+* [test2.js](#the-new-test-framework "save: |jshint")
+
+## The new test framework
+
+This uses the new test framework in which everything is done by setting up the
+directories. 
+
+    var litpro = require('./index.js');
+    var tests = litpro.tests("node ../../litpro.js");
+
+    tests( 
+        ["notsave", "-b seen test.md" ],
+        ["first",  "first.md second.md"]
+    );
+
 
 
 ## The test framework

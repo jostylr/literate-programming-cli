@@ -15,3 +15,6 @@ which could send to a different build directory. Also minify commands, etc.,
 could be available in both, but changed so that in development they are a
 passthru noop. 
 
+testing. a module export that gives a nice test function that allows for easy
+testing. 
+

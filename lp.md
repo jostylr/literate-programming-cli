@@ -18,7 +18,8 @@ lprc.js by modifying args.files.
 
 * [litpro.js](#cli "save: | jshint") The literate program compiler is activated by a command line program.
 * [index.js](#module "save: | jshint") This is the module which can then be
-  used for making further command line clients with other functionality. 
+  used for making further command line clients with other functionality.
+* [test.js](#test-this "save: | jshint") This runs the test for this module. 
 * [README.md](#readme "save:| raw ## README, !--- | sub \n\ #, # |trim ") The standard README.
 * [package.json](#npm-package "save: | jshint") The requisite package file for a npm project. 
 * [TODO.md](#todo "save: | raw ## TODO, !--- ") A list of growing and shrinking items todo.
@@ -103,6 +104,8 @@ The directories are a bit tricky.
 
     module.exports.Folder = Folder;
     module.exports.opts = opts;
+
+    module.exports.tests = _"testing";
 
 
 ## Preload
@@ -1274,6 +1277,214 @@ First we need to install it.
     });
 
 
+##  Testing
+
+We need an easy way to do testing of both this module and plugins. This is
+super opinionated. Convention rather than configuration. 
+
+Each test directory can have the following: 
+
+* out.txt  This should the match the output from running the litpro command.
+  If none present, the output is ignored.
+* err.txt  Same as out, except it uses standard error
+* canonical  This is the canonical example directory that should match the
+  output. Each directory in canonical and files should match corresponding
+  stuff in the top test directory. Normally, this should be build and cache.
+  This will not catch extra outputs outside of the canonical directories,
+  e.g., if the litpro generates file bad.txt in the top directory, but bad.txt
+  is not in the canonical directory, then it will not be seen by this process.
+
+So this little helper handles reading in all of the files and checking the
+output. 
+
+
+`mod.tests([directory, command options], [], ...)`
+
+The test name is the directory name. The litpro command will run from the
+named directory, cding to it first. It also assumes the litpro dev dependency
+is located in the directory above in `node_modules/.bin/litpro` or as set in
+the .cmd option of tests.
+
+The idea is that each test can have its own directory under the `tests`
+directory. The command to execute the literate programming is specified in the
+test and can be whatever is being tested with the files arranged in whatever
+fashion. But there is a special directory of `canonical` for which everything
+in it should match the generated stuff in the top directory. 
+
+
+    function (litpro) {
+        litpro = litpro || 'node ../../node_modules/.bin/litpro';
+        
+        var read = fs.readFileSync;
+        var write = fs.writeFileSync;
+        var resolve = require('path').resolve;
+        var exec = require('child_process').exec;
+        var del = require('del');
+        var isUtf8 = require('is-utf8');
+        var tape = require('tape');
+
+    
+        var equals = _":buffer equals";
+        var readdir = _":recursive readdir";
+        var checkdir = _":checking dir equality";
+        var test = _":test";
+
+        return function () {
+            var i, n = arguments.length;
+
+            for (i = 0; i < n; i += 1) {
+                test(tape, arguments[i][0], arguments[i][1]);               
+            }
+
+        };
+
+    }
+
+
+
+[test]()
+
+For each test, we execute the litpro command. We store the stdout and stderr
+in out.test and err.test. There is also a reset.test file that will be used to
+clean up the root directory before doin the test; the default are the build,
+cache, out.test, and err.test. 
+
+After reseting, the test executes the command. Then it checks the directories.
+
+    function (tape, dir, command) {
+        command = command || '' ;
+        var reset;
+
+        tape(dir, function (t) {
+            t.plan(1);
+
+            try {
+                reset = read("reset.test");
+                reset = JSON.parse(reset);
+                del.sync(reset);
+            } catch (e) {
+                reset = ["build", "cache", "out.test", "err.test"];
+            }
+
+    
+            var cmd = "cd tests/"+ dir + "; " + litpro + " " + command;
+
+
+            exec(cmd, function (err, stdout, stderr)  {
+                if (err) {
+                    console.log(err);
+                }
+                write(resolve("tests", dir, "out.test"), stdout );
+                write(resolve("tests", dir, "err.test"), stderr);
+                var results = checkdir(dir);
+                var bad = results[1];
+                var msg = "CHECKED: " + results[0];
+                if (bad.length > 0) {
+                    t.fail(msg + "\n" + "BAD: " + bad.length  );
+                    console.log("not equal:\n" + bad.join("\n"));
+                } else {
+                    t.pass(msg);
+                }
+            });
+        });
+
+    }
+        
+
+
+
+[checking dir equality]()
+
+Inspired by [assert-dir-equal](https://github.com/ianstormtaylor/assert-dir-equal) 
+
+
+    function (dir) {
+        var ret = [];
+        var count = 0;
+        var actuals = readdir( resolve("tests", dir, "canonical") );
+        actuals.forEach(function(rel){
+            count += 1;
+            var a = read(resolve("tests", dir, "canonical", rel));
+            var e = read(resolve("tests", dir, rel));
+            if (!(equals(a, e))) {
+                if (isUtf8(a) && isUtf8(e) ) {
+                    ret.push(rel + "\n~~~\n" + a.toString() + "\n~~~\n" + 
+                        e.toString() + "\n---\n\n");
+                } else {
+                    ret.push(rel);
+                }
+            }
+        });
+        return [count, ret];
+    }
+        
+
+[recursive readdir]()
+
+Based on [fs-recursive-readdir](https://github.com/fs-utils/fs-readdir-recursive)
+
+This is synchronous which is fine for our purposes.
+
+
+    function self (root, files, prefix) {
+        prefix = prefix || '';
+        files = files || [];
+
+        var dir = path.join(root, prefix);
+        if (!fs.existsSync(dir)) {
+            return;
+        }
+        if (fs.statSync(dir).isDirectory()) {
+            fs.readdirSync(dir).
+            forEach(function (name) {
+                self(root, files, path.join(prefix, name));
+            });
+        } else {
+            files.push(prefix);
+        }
+
+        return files;
+        }
+
+[buffer equals]()
+
+For v.10 and below we need to manually check the buffer equality. From
+[node-buffer-equal](https://github.com/substack/node-buffer-equal)
+
+    function (a, b) {
+        if (typeof a.equals === 'function') {
+            return a.equals(b);
+        }
+        var i, n = a.length;
+        if (n !== b.length) {
+            return false;
+        }
+        
+        for (i = 0; i < n; i++) {
+            if (a[i] !== b[i]) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+## Test this
+
+This uses the new test framework in which everything is done by setting up the
+directories. 
+
+    var litpro = require('./index.js');
+    var tests = litpro.tests("node ../../litpro.js");
+
+    tests( 
+        ["notsave", "-b seen test.md" ],
+        ["first",  "first.md second.md"]
+    );
+
+
+
+
 [off](# "block:")
 
 ## README
@@ -1352,6 +1563,9 @@ default is development, but then one production ready, switch to lprc-prod.js
 which could send to a different build directory. Also minify commands, etc.,
 could be available in both, but changed so that in development they are a
 passthru noop. 
+
+testing. a module export that gives a nice test function that allows for easy
+testing. 
 
 !---
 
@@ -1469,5 +1683,5 @@ by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ;
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, iconv-lite 0.4.7, 
         literate-programming-lib 1.5.2, mkdirp 0.5.0, needle 0.7.11,
         nomnom 1.8.1;
-    dev: event-when 1.0.0, litpro-jshint 0.1.0, tape 3.5.0 ")
+    dev: litpro-jshint 0.1.0, tape 3.5.0, del 1.1.1, is-utf8 0.2.0")
 

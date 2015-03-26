@@ -35,9 +35,10 @@
     "nomnom" : "^1.8.1"
   },
   "devDependencies" : {
-    "event-when" : "^1.0.0",
     "litpro-jshint" : "^0.1.0",
-    "tape" : "^3.5.0"
+    "tape" : "^3.5.0",
+    "del" : "^1.1.1",
+    "is-utf8" : "^0.2.0"
   },
   "scripts" : { 
     "test" : "node ./test.js"
