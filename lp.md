@@ -305,24 +305,23 @@ saving one.
             var firstpart = filename.split(sep).slice(0, -1).join(sep);
             var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
             var fpath = folder.build;
-            var fullname = fpath + sep + filename; 
+            var fullname = fpath + sep + filename;
+            var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
             fpath = fpath + (firstpart ? sep + firstpart : "");
             var sha;
-            if ( (sha = folder.checksum.tosave(fullname, text) ) ) {
+            if ( (sha = folder.checksum.tosave(shortname, text) ) ) {
                 fs.writeFile(fullname, text, 
                     {encoding:encoding},  function (err) {
                     if (err) {
                         _":mkdirp";
                     } else{
                         folder.log("SAVED: " + 
-                             "./" + fullname.replace(root, "").
-                                replace(/^\.\//, '' ) );
-                        folder.checksum.data[fullname] = sha; 
+                             "./" + shortname );
+                        folder.checksum.data[shortname] = sha; 
                     }
                 });
             } else {
-                folder.log("UNCHANGED " + "./" + fullname.replace(root, ""). 
-                                replace(/^\.\//, '' ) );
+                folder.log("UNCHANGED " + "./" + shortname);
             }
         }],
         ["report error", function (data, evObj) {
@@ -1359,13 +1358,20 @@ After reseting, the test executes the command. Then it checks the directories.
             t.plan(1);
 
             try {
-                reset = read("reset.test");
-                reset = JSON.parse(reset);
-                del.sync(reset);
+                reset = read(resolve( "tests", dir, "reset.test"), 
+                    {encoding:"utf8"} ).split("\n");
             } catch (e) {
                 reset = ["build", "cache", "out.test", "err.test"];
             }
-
+            reset = reset.filter( function (el) {
+                    return el;
+                }).map(function (el) {
+                    return resolve("tests", dir, el);
+                }
+            );
+            //console.log(reset);
+            del.sync(reset);
+            //console.log(readdir( resolve("tests", dir ) ));
     
             var cmd = "cd tests/"+ dir + "; " + litpro + " " + command;
 
@@ -1482,7 +1488,8 @@ use other directory names for those.
 
     tests( 
         ["notsave", "-b seen test.md" ],
-        ["first",  "-b seen first.md second.md"]
+        ["first",  "first.md second.md"],
+        ["lprc", ""]
     );
 
 
@@ -1623,10 +1630,13 @@ The requisite npm package file.
 
 ## gitignore
 
-    node_modules
-    build
-    cache
-    old
+    node_modules/
+    /old/
+    /build/
+    /cache/
+    /out.test
+    /err.test
+    /.checksum
 
 ## npmignore
 
