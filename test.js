@@ -3,5 +3,5 @@ var tests = litpro.tests("node ../../litpro.js");
 
 tests( 
     ["notsave", "-b seen test.md" ],
-    ["first",  "first.md second.md"]
+    ["first",  "-b seen first.md second.md"]
 );

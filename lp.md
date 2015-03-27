@@ -1474,12 +1474,15 @@ For v.10 and below we need to manually check the buffer equality. From
 This uses the new test framework in which everything is done by setting up the
 directories. 
 
+Currently have it setup to ignore build and cache directories. So we need to
+use other directory names for those. 
+
     var litpro = require('./index.js');
     var tests = litpro.tests("node ../../litpro.js");
 
     tests( 
         ["notsave", "-b seen test.md" ],
-        ["first",  "first.md second.md"]
+        ["first",  "-b seen first.md second.md"]
     );
 
 
