@@ -4,5 +4,6 @@ var tests = litpro.tests("node ../../litpro.js");
 tests( 
     ["notsave", "-b seen test.md" ],
     ["first",  "first.md second.md"],
-    ["lprc", ""]
+    ["lprc", ""],
+    ["encoding", "-e utf16 enc.md -b ."]
 );

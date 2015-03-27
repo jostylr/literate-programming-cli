@@ -1489,9 +1489,15 @@ use other directory names for those.
     tests( 
         ["notsave", "-b seen test.md" ],
         ["first",  "first.md second.md"],
-        ["lprc", ""]
+        ["lprc", ""],
+        ["encoding", "-e utf16 enc.md -b ."]
     );
 
+
+* notsave. Checks that it correctly recognizes that things have not changed.
+* first. A basic test of reading other files and outputing something
+* lprc. Checks use of lprc.js file
+* encoding. The encoding of files can be specified. 
 
 
 
