@@ -1,7 +1,6 @@
 old
 build
 .checksum
-cache
 tests
 test.js
 travis.yml

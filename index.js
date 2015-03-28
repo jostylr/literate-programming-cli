@@ -6,7 +6,6 @@ var sep = path.sep;
 var Folder = require('literate-programming-lib');
 var mkdirp = require('mkdirp');
 var exec = require('child_process').exec;
-var needle = require('needle');
 var diff = require('diff');
 var colors = require('colors/safe');
 var crypto = require('crypto');
@@ -236,85 +235,6 @@ Folder.directives.readfile = function (args) {
         }
     );
 };
-Folder.directives.download = function (args) {
-    var doc = this;
-    var gcd = doc.gcd;
-    var name = doc.colon.escape(args.link);
-    var url = args.href;
-    var encoding = args.input || doc.parent.encoding;
-    var cache = doc.parent.cache;
-   
-    if (cache.has(url) ) {
-        cache.load(url, encoding, function (err, value) {
-            if (err) {
-               gcd.emit("error:http request:cache error", [url, name, err]); 
-            } else {
-                doc.store(name, value);
-            }
-        });
-    } else {
-        if (cache.waiting(url) ) {
-            gcd.on("cache url downloaded:" + doc.colon.escape(url),
-                function (data) {
-                    doc.store(name, data);
-            });
-        } else {
-            needle.get(url, {compressed : true}, function (err, response) {
-                var text;
-                if (err) {
-                    gcd.emit("error:http request:failed", [err, url, name]);
-                } else {
-                    if (response.statusCode === 200) {
-                        text = response.body;
-                        cache.save(url, encoding, text);
-                        doc.store(name, text);
-                        gcd.emit("cache url downloaded:" + doc.colon.escape(url), 
-                            text);
-                    } else {
-                        gcd.emit("error:http request:bad status", [url, name,
-                            response]);
-                    }
-                }
-            
-            });
-        }
-    }
-};
-Folder.directives.downsave = function (args) {
-    var doc = this;
-    var gcd = doc.gcd;
-    var name = doc.colon.escape(args.link);
-    var url = args.href;
-    var zipurl = args.title;
-    var cache = doc.parent.Folder.cache;
-   
-    if (cache.has(url) ) {
-        cache.load(url, function (err, value) {
-            if (err) {
-               gcd.emit("error:http request:cache error", [url, name, err]); 
-            } else {
-                doc.store(name, value);
-            }
-        });
-    } else {
-        if (true ) {
-        needle.get(url, {compressed : true}, function (err, response) {
-            if (err) {
-                gcd.emit("error:http request:failed", [err, url, name]);
-            } else {
-                if (response.statusCode === 200) {
-                    doc.store(name, response.body);
-                    cache.save(url, response.body);
-                } else {
-                    gcd.emit("error:http request:bad status", [url, name,
-                        response]);
-                }
-            }
-
-        });
-        }
-    }
-};
 
 Folder.async("exec", function (text, args, callback  ) {
     var doc = this;
@@ -366,7 +286,6 @@ Folder.exit = function () {
         var build, folder, arr;
         var folders = Folder.folders; 
             
-        Folder.cache.finalSave();
 
         for ( build in folders) {
             folder = folders[build];
@@ -477,7 +396,6 @@ Folder.process = function (args) {
         Folder.folders[build] = folder;
 
         folder.build = build;
-        folder.cache = args.cache;
         folder.src = args.src;
         gcd = folder.gcd;
         colon = folder.colon;
@@ -487,8 +405,6 @@ Folder.process = function (args) {
             folder.flags[args.flag[k]] = true;
         }
 
-        folder.cache = Folder.cache;
-        
         folder.checksum = Object.create(Folder.checksum);
         folder.checksum.data = {};
         folder.checksum.firstLoad(build, args.checksum);
@@ -508,65 +424,20 @@ Folder.process = function (args) {
                 gcd.emit("initial document:" +  emitname);
             }
         } else {
+            if (! args.in) {
+                emitname = colon.escape("project.md");
+                gcd.emit("initial document:" + emitname);
+            }
+        }
+        if (args.in) {
             fcd.cache("need standard input", "standard input read", stdinf(folder) );
-            
         }
 
 
     }
 };
 
-Folder.cache = { has : function (name) {
-    return this.data.hasOwnProperty(name);
-},
-    save : function (url, encoding, text) {
-        var self = this;
-        var name = checksum.sha1sync(text); 
-        fs.writeFile(name, text, {encoding:encoding}, function (err) {
-            if (err) {
-                console.log("error:cache saving error", [url, name, text]);
-            } else {
-                self.data[url] = name;
-            }
-        });
-    },
-    load : function (url, encoding, callback) {
-        var self = this;
-    
-        fs.readFile(self.data[url], {encoding:encoding}, callback);
-    
-    },
-    firstLoad : function (dir, file) {
-        var filename = dir + sep + file;
-        var json, self = this;
-        self.dir = dir;
-        self.filename = filename;
-    
-    
-        try { 
-            mkdirp.sync(dir);
-            json = fs.readFileSync(filename, {encoding:"utf8"});
-            self.data = JSON.parse(json);
-            self.filename = filename;
-        } catch (e) {
-            self.data = {};
-        }
-    },
-    finalSave : function () {
-        var self = this;
-            
-        try {
-            fs.writeFileSync(self.filename, JSON.stringify(self.data));
-        } catch (e) {
-            console.log("error:cache file not savable", [e.message, self.filename]);
-        }
-    },
-    dir : '',
-    filename : '',
-    data : {} 
-};
-
-var checksum = Folder.checksum = {
+Folder.checksum = {
     firstLoad : function (dir, file) {
         var filename = dir + sep + file;
         var json, self = this;
@@ -725,10 +596,6 @@ var opts = require("nomnom").
             default : root + "cache",
             help: "A place to stored downloaded files for caching"
         },
-        cachefile : {
-            default : ".cache",
-            help : "List of files already downloaded. Stored in cache directory"
-        },
         checksum : {
             default : ".checksum",
             help: "A list of the files and their sha1 sums to avoid rewriting." +
@@ -752,8 +619,21 @@ var opts = require("nomnom").
         flag : {
             abbr : "f",
             help : "flags to pass to use in if conditions",
+            list : true,
+            default : []
+        },
+        in : {
+            abbr : "i",
+            help : "Use standard input for a litpro doc",
+            flag:true
+        },
+        other : {
+            abbr : "z",
+            help : "Other plugin key values",
+            list : true,
             default : []
         }
+    
     
     
     }).
@@ -771,127 +651,3 @@ Folder.lprc = function (name, args) {
 
 module.exports.Folder = Folder;
 module.exports.opts = opts;
-
-module.exports.tests = function (litpro) {
-    litpro = litpro || 'node ../../node_modules/.bin/litpro';
-    
-    var read = fs.readFileSync;
-    var write = fs.writeFileSync;
-    var resolve = require('path').resolve;
-    var exec = require('child_process').exec;
-    var del = require('del');
-    var isUtf8 = require('is-utf8');
-    var tape = require('tape');
-
-
-    var equals = function (a, b) {
-        if (typeof a.equals === 'function') {
-            return a.equals(b);
-        }
-        var i, n = a.length;
-        if (n !== b.length) {
-            return false;
-        }
-        
-        for (i = 0; i < n; i++) {
-            if (a[i] !== b[i]) {
-                return false;
-            }
-        }
-        
-        return true;
-    };
-    var readdir = function self (root, files, prefix) {
-        prefix = prefix || '';
-        files = files || [];
-    
-        var dir = path.join(root, prefix);
-        if (!fs.existsSync(dir)) {
-            return;
-        }
-        if (fs.statSync(dir).isDirectory()) {
-            fs.readdirSync(dir).
-            forEach(function (name) {
-                self(root, files, path.join(prefix, name));
-            });
-        } else {
-            files.push(prefix);
-        }
-    
-        return files;
-        };
-    var checkdir = function (dir) {
-        var ret = [];
-        var count = 0;
-        var expecteds = readdir( resolve("tests", dir, "canonical") );
-        expecteds.forEach(function(rel){
-            count += 1;
-            var e = read(resolve("tests", dir, "canonical", rel));
-            var a = read(resolve("tests", dir, rel));
-            if (!(equals(e, a))) {
-                if (isUtf8(e) && isUtf8(a) ) {
-                    ret.push(rel + "\n~~~Expected\n" + e.toString() + "\n~~~Actual\n" + 
-                        a.toString() + "\n---\n\n");
-                } else {
-                    ret.push(rel);
-                }
-            }
-        });
-        return [count, ret];
-    };
-    var test = function (tape, dir, command) {
-        command = command || '' ;
-        var reset;
-    
-        tape(dir, function (t) {
-            t.plan(1);
-    
-            try {
-                reset = read(resolve( "tests", dir, "reset.test"), 
-                    {encoding:"utf8"} ).split("\n");
-            } catch (e) {
-                reset = ["build", "cache", "out.test", "err.test"];
-            }
-            reset = reset.filter( function (el) {
-                    return el;
-                }).map(function (el) {
-                    return resolve("tests", dir, el);
-                }
-            );
-            //console.log(reset);
-            del.sync(reset);
-            //console.log(readdir( resolve("tests", dir ) ));
-    
-            var cmd = "cd tests/"+ dir + "; " + litpro + " " + command;
-    
-    
-            exec(cmd, function (err, stdout, stderr)  {
-                if (err) {
-                    console.log(err);
-                }
-                write(resolve("tests", dir, "out.test"), stdout );
-                write(resolve("tests", dir, "err.test"), stderr);
-                var results = checkdir(dir);
-                var bad = results[1];
-                var msg = "CHECKED: " + results[0];
-                if (bad.length > 0) {
-                    t.fail(msg + "\n" + "BAD: " + bad.length  );
-                    console.log("not equal:\n" + bad.join("\n"));
-                } else {
-                    t.pass(msg);
-                }
-            });
-        });
-    
-    };
-
-    return function () {
-        var i, n = arguments.length;
-
-        for (i = 0; i < n; i += 1) {
-            test(tape, arguments[i][0], arguments[i][1]);               
-        }
-
-    };
-
-};

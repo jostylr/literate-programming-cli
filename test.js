@@ -1,9 +1,11 @@
-var litpro = require('./index.js');
-var tests = litpro.tests("node ../../litpro.js");
+/*global require */
+
+var tests = require('literate-programming-cli-test')("node ../../litpro.js");
 
 tests( 
-    ["notsave", "-b seen test.md" ],
     ["first",  "first.md second.md"],
+    ["build", "-b seen test.md" ],
+    ["checksum", "-b . --checksum awesome  project.md"],
     ["lprc", ""],
     ["encoding", "-e ucs2 ucs2.md -b ."]
 );

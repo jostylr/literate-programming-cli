@@ -12,7 +12,7 @@ the top, it all goes down.
 Any initially given filenames are read as is. This allows for shell
 completion. It is a little odd in that command line is non-prefixed while
 loading from within doc is prefixed. One can also specify starting files in
-lprc.js by modifying args.files. 
+lprc.js by modifying args.file. 
 
 ## Directory structure
 
@@ -49,11 +49,13 @@ files.
 
     #!/usr/bin/env node
 
-    /*global process, require, console*/
+    /*global process, require */
 
     var mod = require('./index.js');
 
     var args = mod.opts.parse();
+
+    _":arg z"
 
     //console.log(args);
 
@@ -63,13 +65,30 @@ files.
 
     Folder.lprc(args.lprc, args);
 
-    Folder.cache.firstLoad(args.cache, args.cachefile);
-
     Folder.process(args);
 
     process.on('exit', Folder.exit());
 
 
+[arg z]()
+
+This is the other option parsing. So we will reiterate over it. We split on
+the colon. If there is no second colon, then we treat it as a boolean flag.
+To pass in multiple values, use more colons. 
+
+Example  `-z papers:dude:great:whatever` will translate into creating
+`args.papers = ['dude', 'great', 'whatever']`
+
+    args.other.forEach(function (arg) {
+        var pair = arg.split(":");
+        if (pair.length === 1) {
+            args[pair[0]] = true;
+        } else if (pair.length === 2) {
+            args[pair[0]] = pair[1]; 
+        } else {
+            args[pair[0]] = pair.slice(0);
+        }
+    });
 
  
 ## Module
@@ -87,7 +106,6 @@ The directories are a bit tricky.
     var Folder = require('literate-programming-lib');
     var mkdirp = require('mkdirp');
     var exec = require('child_process').exec;
-    var needle = require('needle');
     var diff = require('diff');
     var colors = require('colors/safe');
     var crypto = require('crypto');
@@ -105,7 +123,6 @@ The directories are a bit tricky.
     module.exports.Folder = Folder;
     module.exports.opts = opts;
 
-    module.exports.tests = _"testing";
 
 
 ## Preload
@@ -131,9 +148,7 @@ something. For example, we could enable logging with the gcd.
 
     Folder.process = _":process";
 
-    Folder.cache = _"cache";
-
-    var checksum = Folder.checksum = _"checksum";
+    Folder.checksum = _"checksum";
 
     Folder.folders = {};
 
@@ -154,7 +169,6 @@ event.
             var build, folder, arr;
             var folders = Folder.folders; 
                 
-            Folder.cache.finalSave();
     
             for ( build in folders) {
                 folder = folders[build];
@@ -221,7 +235,6 @@ actually initiates the compiling. It receives the parsed arguments.
 [assign vars]()
 
     folder.build = build;
-    folder.cache = args.cache;
     folder.src = args.src;
     gcd = folder.gcd;
     colon = folder.colon;
@@ -234,7 +247,6 @@ actually initiates the compiling. It receives the parsed arguments.
 [checksum cache]() 
 
     
-    folder.cache = Folder.cache;
 
     folder.checksum = Object.create(Folder.checksum);
     folder.checksum.data = {};
@@ -242,8 +254,8 @@ actually initiates the compiling. It receives the parsed arguments.
             
 [compile docs]()
 
-Need to check for no files and then use standard input. All of this shouldbe
-converted to use Folder.fcd.cache....need to implement that in event-when.
+This uses stdin if the args flag i is checked. If there are no files presented
+and no input, then it tries to read project.md as the default
 
     m = args.file.length;
     if (m > 0) {
@@ -252,8 +264,13 @@ converted to use Folder.fcd.cache....need to implement that in event-when.
             gcd.emit("initial document:" +  emitname);
         }
     } else {
+        if (! args.in) {
+            emitname = colon.escape("project.md");
+            gcd.emit("initial document:" + emitname);
+        }
+    }
+    if (args.in) {
         fcd.cache("need standard input", "standard input read", stdinf(folder) );
-        
     }
  
 [stdin]()
@@ -518,7 +535,6 @@ to overwrite whatever they like in it though ideally they play nice.
         }, 
         "encoding" : _"encodings:option",
         _":dir",
-        _"cache:cli options",
         _"checksum:cli options",
         "lprc": {
             abbr : "l",
@@ -538,8 +554,21 @@ to overwrite whatever they like in it though ideally they play nice.
         flag : {
             abbr : "f",
             help : "flags to pass to use in if conditions",
+            list : true,
+            default : []
+        },
+        in : {
+            abbr : "i",
+            help : "Use standard input for a litpro doc",
+            flag:true
+        },
+        other : {
+            abbr : "z",
+            help : "Other plugin key values",
+            list : true,
             default : []
         }
+
 
 
     }
@@ -683,8 +712,6 @@ This does not cache the command.
 Folder.directives.exec = _"dir execute";
 Folder.directives.execfresh = _"dir execute:fresh";
 Folder.directives.readfile = _"dir readfile";
-Folder.directives.download = _"dir download";
-Folder.directives.downsave = _"downsave";
 ```
 
 
@@ -869,163 +896,19 @@ Really need to abstract common behavior.
     }
 
 
-### Dir Download
 
 
-This is the directive for downloading a file and storing its text in a
-variable for access. Note the encoding is for saving and writing locally; the
-encoding from the server is whatever it is. 
+## Checksum
 
+This holds the checksums of 
 
-`[var name](url "download:encoding")`
-
-
-    function (args) {
-        var doc = this;
-        var gcd = doc.gcd;
-        var name = doc.colon.escape(args.link);
-        var url = args.href;
-        var encoding = args.input || doc.parent.encoding;
-        var cache = doc.parent.cache;
-       
-        if (cache.has(url) ) {
-            _":load cache"
-        } else {
-            if (cache.waiting(url) ) {
-                _":waiting for download"
-            } else {
-                _":do the download"
-            }
-        }
-    }
-
-
-[load cache]()
-
-The file is cached, we load it. 
-
-    cache.load(url, encoding, function (err, value) {
-        if (err) {
-           gcd.emit("error:http request:cache error", [url, name, err]); 
-        } else {
-            doc.store(name, value);
-        }
-    });
-
-
-[waiting for download]()
-
-Here we are waiting for someone else to download the file.
-
-    gcd.on("cache url downloaded:" + doc.colon.escape(url),
-        function (data) {
-            doc.store(name, data);
-    });
-
-[do the download]()
-
-We use the needle library to do the download. If all goes well, we store the
-file, store the variable, and emit the answer. 
-
-    needle.get(url, {compressed : true}, function (err, response) {
-        var text;
-        if (err) {
-            gcd.emit("error:http request:failed", [err, url, name]);
-        } else {
-            if (response.statusCode === 200) {
-                text = response.body;
-                cache.save(url, encoding, text);
-                doc.store(name, text);
-                gcd.emit("cache url downloaded:" + doc.colon.escape(url), 
-                    text);
-            } else {
-                gcd.emit("error:http request:bad status", [url, name,
-                    response]);
-            }
-        }
-
-    });
-
-
-
-### Downsave
-
-
-This is the directive for downloading and saving a file directly. Think
-pictures or bootstrap support files. Stuff not being acted on. This stuff
-should be streamed to their destinations, whether to/from the cache or not. 
-
-If there is a zipurl, then if the url is not cached, then the zipurl is
-downloaded (after checking the cache) instead and unzipped with the filename 
-
-Using jszip, we can just leave the zip file in the cache and extract the files
-as needed easily enough. 
-
-We should also record its saving just like any other file saving in the
-destination so that we don't rewrite unnecessarily. 
-
-`[out filename](url "downsave: zipurl")`
-
-
-    function (args) {
-        var doc = this;
-        var gcd = doc.gcd;
-        var name = doc.colon.escape(args.link);
-        var url = args.href;
-        var zipurl = args.title;
-        var cache = doc.parent.Folder.cache;
-       
-        if (cache.has(url) ) {
-            cache.load(url, function (err, value) {
-                if (err) {
-                   gcd.emit("error:http request:cache error", [url, name, err]); 
-                } else {
-                    doc.store(name, value);
-                }
-            });
-        } else {
-            if (true ) {
-            needle.get(url, {compressed : true}, function (err, response) {
-                if (err) {
-                    gcd.emit("error:http request:failed", [err, url, name]);
-                } else {
-                    if (response.statusCode === 200) {
-                        doc.store(name, response.body);
-                        cache.save(url, response.body);
-                    } else {
-                        gcd.emit("error:http request:bad status", [url, name,
-                            response]);
-                    }
-                }
-
-            });
-            }
-        }
-    }
-
-
-
-## Cache
-
-This implements the cache object to save on downloads. In particular, the idea
-is that we should save downloads by caching locally in the cache directory. We
-need the following methods:
-
-* has  Whether the url has been cached
-* save This stores the downloaded file and records it in the cache
-* load This loads the cache object from the directory. 
-* firstLoad  Synchronous loading of the cache file.
-* finalSave Synchronos saving of the cache object upon exit. 
-
-The cache directory should be excluded from npm and git. 
-
-    { has : _":has",
-        save : _":save",
-        load : _":load",
+    {
         firstLoad : _":first load",
         finalSave : _":final save",
-        dir : '',
+        sha1sync : _":sha1 sync",
+        tosave: _":to save",
         filename : '',
+        dir : '',
         data : {} 
     }
 
@@ -1050,41 +933,6 @@ This tries to read in the file.
         }
     }
 
-[has]()
-
-    function (name) {
-        return this.data.hasOwnProperty(name);
-    }
-
-[save]()
-
-We will save the files using their checksum as the name and using the cache
-file as the record associating with the url. Seems safest. 
-
-    function (url, encoding, text) {
-        var self = this;
-        var name = checksum.sha1sync(text); 
-        fs.writeFile(name, text, {encoding:encoding}, function (err) {
-            if (err) {
-                console.log("error:cache saving error", [url, name, text]);
-            } else {
-                self.data[url] = name;
-            }
-        });
-    }
-
- 
-[load]()
-
-The object exists in the cache. Let's load it.
-
-    function (url, encoding, callback) {
-        var self = this;
-
-        fs.readFile(self.data[url], {encoding:encoding}, callback);
-
-    }
-
 [final save]()
 
 Wrtite out the 
@@ -1098,31 +946,6 @@ Wrtite out the
             console.log("error:cache file not savable", [e.message, self.filename]);
         }
     }
-
-[cli options]()
-
-This is the object that handles the argument parsing options.
-
-    cachefile : {
-        default : ".cache",
-        help : "List of files already downloaded. Stored in cache directory"
-    }
-
-
-## Checksum
-
-This holds the checksums of 
-
-    {
-        firstLoad : _"cache:first load",
-        finalSave : _"cache:final save",
-        sha1sync : _":sha1 sync",
-        tosave: _":to save",
-        filename : '',
-        dir : '',
-        data : {} 
-    }
-
 
 [cli options]()
 
@@ -1268,206 +1091,6 @@ First we need to install it.
         }
     });
 
-
-##  Testing
-
-We need an easy way to do testing of both this module and plugins. This is
-super opinionated. Convention rather than configuration. 
-
-Each test directory can have the following: 
-
-* out.txt  This should the match the output from running the litpro command.
-  If none present, the output is ignored.
-* err.txt  Same as out, except it uses standard error
-* canonical  This is the canonical example directory that should match the
-  output. Each directory in canonical and files should match corresponding
-  stuff in the top test directory. Normally, this should be build and cache.
-  This will not catch extra outputs outside of the canonical directories,
-  e.g., if the litpro generates file bad.txt in the top directory, but bad.txt
-  is not in the canonical directory, then it will not be seen by this process.
-
-So this little helper handles reading in all of the files and checking the
-output. 
-
-
-`mod.tests([directory, command options], [], ...)`
-
-The test name is the directory name. The litpro command will run from the
-named directory, cding to it first. It also assumes the litpro dev dependency
-is located in the directory above in `node_modules/.bin/litpro` or as set in
-the .cmd option of tests.
-
-The idea is that each test can have its own directory under the `tests`
-directory. The command to execute the literate programming is specified in the
-test and can be whatever is being tested with the files arranged in whatever
-fashion. But there is a special directory of `canonical` for which everything
-in it should match the generated stuff in the top directory. 
-
-
-    function (litpro) {
-        litpro = litpro || 'node ../../node_modules/.bin/litpro';
-        
-        var read = fs.readFileSync;
-        var write = fs.writeFileSync;
-        var resolve = require('path').resolve;
-        var exec = require('child_process').exec;
-        var del = require('del');
-        var isUtf8 = require('is-utf8');
-        var tape = require('tape');
-
-    
-        var equals = _":buffer equals";
-        var readdir = _":recursive readdir";
-        var checkdir = _":checking dir equality";
-        var test = _":test";
-
-        return function () {
-            var i, n = arguments.length;
-
-            for (i = 0; i < n; i += 1) {
-                test(tape, arguments[i][0], arguments[i][1]);               
-            }
-
-        };
-
-    }
-
-
-
-[test]()
-
-For each test, we execute the litpro command. We store the stdout and stderr
-in out.test and err.test. There is also a reset.test file that will be used to
-clean up the root directory before doin the test; the default are the build,
-cache, out.test, and err.test. 
-
-After reseting, the test executes the command. Then it checks the directories.
-
-    function (tape, dir, command) {
-        command = command || '' ;
-        var reset;
-
-        tape(dir, function (t) {
-            t.plan(1);
-
-            try {
-                reset = read(resolve( "tests", dir, "reset.test"), 
-                    {encoding:"utf8"} ).split("\n");
-            } catch (e) {
-                reset = ["build", "cache", "out.test", "err.test"];
-            }
-            reset = reset.filter( function (el) {
-                    return el;
-                }).map(function (el) {
-                    return resolve("tests", dir, el);
-                }
-            );
-            //console.log(reset);
-            del.sync(reset);
-            //console.log(readdir( resolve("tests", dir ) ));
-    
-            var cmd = "cd tests/"+ dir + "; " + litpro + " " + command;
-
-
-            exec(cmd, function (err, stdout, stderr)  {
-                if (err) {
-                    console.log(err);
-                }
-                write(resolve("tests", dir, "out.test"), stdout );
-                write(resolve("tests", dir, "err.test"), stderr);
-                var results = checkdir(dir);
-                var bad = results[1];
-                var msg = "CHECKED: " + results[0];
-                if (bad.length > 0) {
-                    t.fail(msg + "\n" + "BAD: " + bad.length  );
-                    console.log("not equal:\n" + bad.join("\n"));
-                } else {
-                    t.pass(msg);
-                }
-            });
-        });
-
-    }
-        
-
-
-
-[checking dir equality]()
-
-Inspired by [assert-dir-equal](https://github.com/ianstormtaylor/assert-dir-equal) 
-
-
-    function (dir) {
-        var ret = [];
-        var count = 0;
-        var expecteds = readdir( resolve("tests", dir, "canonical") );
-        expecteds.forEach(function(rel){
-            count += 1;
-            var e = read(resolve("tests", dir, "canonical", rel));
-            var a = read(resolve("tests", dir, rel));
-            if (!(equals(e, a))) {
-                if (isUtf8(e) && isUtf8(a) ) {
-                    ret.push(rel + "\n~~~Expected\n" + e.toString() + "\n~~~Actual\n" + 
-                        a.toString() + "\n---\n\n");
-                } else {
-                    ret.push(rel);
-                }
-            }
-        });
-        return [count, ret];
-    }
-        
-
-[recursive readdir]()
-
-Based on [fs-recursive-readdir](https://github.com/fs-utils/fs-readdir-recursive)
-
-This is synchronous which is fine for our purposes.
-
-
-    function self (root, files, prefix) {
-        prefix = prefix || '';
-        files = files || [];
-
-        var dir = path.join(root, prefix);
-        if (!fs.existsSync(dir)) {
-            return;
-        }
-        if (fs.statSync(dir).isDirectory()) {
-            fs.readdirSync(dir).
-            forEach(function (name) {
-                self(root, files, path.join(prefix, name));
-            });
-        } else {
-            files.push(prefix);
-        }
-
-        return files;
-        }
-
-[buffer equals]()
-
-For v.10 and below we need to manually check the buffer equality. From
-[node-buffer-equal](https://github.com/substack/node-buffer-equal)
-
-    function (a, b) {
-        if (typeof a.equals === 'function') {
-            return a.equals(b);
-        }
-        var i, n = a.length;
-        if (n !== b.length) {
-            return false;
-        }
-        
-        for (i = 0; i < n; i++) {
-            if (a[i] !== b[i]) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-
 ## Test this
 
 This uses the new test framework in which everything is done by setting up the
@@ -1476,21 +1099,39 @@ directories.
 Currently have it setup to ignore build and cache directories. So we need to
 use other directory names for those. 
 
-    var litpro = require('./index.js');
-    var tests = litpro.tests("node ../../litpro.js");
+    /*global require */
+
+    var tests = require('literate-programming-cli-test')("node ../../litpro.js");
 
     tests( 
-        ["notsave", "-b seen test.md" ],
         ["first",  "first.md second.md"],
+        ["build", "-b seen test.md" ],
+        ["checksum", "-b . --checksum awesome  project.md"],
         ["lprc", ""],
         ["encoding", "-e ucs2 ucs2.md -b ."]
     );
 
 
-* notsave. Checks that it correctly recognizes that things have not changed.
 * first. A basic test of reading other files and outputing something
+* build. Checks that it correctly recognizes that things have not changed.
+  Tests the -b command.
+* checksum. Tests the ability to change name of checksum. It writes and reads
+  from it.
+* diff. This checks the diff option. 
+* encoding. The encoding of files can be specified.
+* files. Specifying multiple files.
+* no file. No file specified should lead to project.md
+* no file, no project. What happens if project.md does not exist?
+* bad files. What happens if a file is specified that does not exist. 
+* flags. A couple of flags to test that out.
+* in. A standard input; may need to something fancy. 
 * lprc. Checks use of lprc.js file
-* encoding. The encoding of files can be specified. 
+* out. Check that out saves to output and not to anywhere else.
+* src. Check that we can have a different src directory. 
+* default src. Check that the default src works as expected. 
+* other. Check boolean, array, single value, a colon with nothing after it,
+  and something that overwrites another argument.
+
 
 
 
@@ -1514,6 +1155,13 @@ If you want a global install so that you just need to write `litpro` then use
 
 The various flags are
 
+* -b, --build  The build directory. Defaults to build. Will create it if it
+  does not exist. Specifying . will use the current directory. 
+* --checksum This gives an alternate name for the file that lists the hash
+  for the generate files. If the compiled text matches, then it is not
+  written. Default is `.checksum` stored in the build directory.
+* -d, --diff This computes the difference between each files from their
+  existing versions. There is no saving of files.
 * -e, --encoding Specify the default encoding. It defaults to utf8, but any
   encoding supported by iconv-lite works. To override that behavior per loaded
   file from a document, one can put the encoding between the colon and pipe in
@@ -1521,30 +1169,25 @@ The various flags are
 * --file A specified file to process. It is possible to have multiple
   files, each proceeded by an option. Also any unclaimed arguments will be
   assumed to be a file that gets added to the list. 
+* -f, --flag This passes in flags that can be used for conditional branching
+  within the literate programming. For example, one could have a production
+  flag that minimizes the code before saving. 
+* -i, --in  This takes in standard input as another litpro doc to read from.
 * -l, --lprc This specifies the lprc.js file to use. None need not be
   provided. The lprc file should export a function that takes in as arguments
   the Folder constructor and an args object (what is processed from the
   command line). This allows for quite a bit of sculpting. See more in lprc. 
-* -b, --build  The build directory. Defaults to build. Will create it if it
-  does not exist. Specifying . will use the current directory. 
+* -o, --out This directs all saved files to standard out; no saving of
+  compiled texts will happen. Other saving of files could happen; this just
+  prevents those files being saved by the save directive from being saved. 
 * -s, --src  The source directory to look for files from load directives. The
   files specified on the command line are used as is while those loaded from
   those files are prefixed. Shell tab completion is a reason for this
   difference. 
-* -c, --cache The cache is a place for assets downloaded from the web.
-* --cachefile This gives an alternate name for the cache file that registers
-  what is downloaded. Default is `.cache`
-* --checksum This gives an alternate name for the file that lists the hash
-  for the generate files. If the compiled text matches, then it is not
-  written. Default is `.checksum` stored in the build directory.
-* -d, --diff This computes the difference between each files from their
-  existing versions. There is no saving of files. 
-* -o, --out This directs all saved files to standard out; no saving of
-  compiled texts will happen. Other saving of files could happen; this just
-  prevents those files being saved by the save directive from being saved. 
-* -f, --flag This passes in flags that can be used for conditional branching
-  within the literate programming. For example, one could have a production
-  flag that minimizes the code before saving. 
+* -z, --other  This is a place that takes in an array of options for plugins.
+  Since plugins are loaded after initial parsing, this allows one to sneak in
+  options. The format is key:value. So `-z cache:cool` would set the value
+  cache to cool.
 
  
 
@@ -1564,6 +1207,11 @@ readfile, directory, writefile commands for use from a litpro doc.
 
 maybe a built in watcher program, using nodemon?  
 command line: read file, readdir, write file, file encodings, curling, 
+
+split http stuff into own module and split testing into own module.
+
+default litpro to project.md. add an option for toggling standard input. If
+no project.md and no litpro, exit. 
 
 plugins: jshint, jstidy, jade, markdown,
 
@@ -1629,7 +1277,6 @@ The requisite npm package file.
     node_modules/
     /old/
     /build/
-    /cache/
     /out.test
     /err.test
     /.checksum
@@ -1640,7 +1287,6 @@ The requisite npm package file.
     old
     build
     .checksum
-    cache
     tests
     test.js
     travis.yml
@@ -1690,7 +1336,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, 
-        literate-programming-lib 1.5.2, mkdirp 0.5.0, needle 0.7.11,
+        literate-programming-lib 1.5.2, mkdirp 0.5.0, 
         nomnom 1.8.1;
-    dev: litpro-jshint 0.1.0, tape 3.5.0, del 1.1.1, is-utf8 0.2.0")
+    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.1.0")
 

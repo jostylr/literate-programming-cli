@@ -7,6 +7,11 @@ readfile, directory, writefile commands for use from a litpro doc.
 maybe a built in watcher program, using nodemon?  
 command line: read file, readdir, write file, file encodings, curling, 
 
+split http stuff into own module and split testing into own module.
+
+default litpro to project.md. add an option for toggling standard input. If
+no project.md and no litpro, exit. 
+
 plugins: jshint, jstidy, jade, markdown,
 
 development versus deployment? Maybe manage it with different lprc files. So

@@ -1,7 +1,6 @@
 node_modules/
 /old/
 /build/
-/cache/
 /out.test
 /err.test
 /.checksum
