@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.8.0; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.8.1; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
