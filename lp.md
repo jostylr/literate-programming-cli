@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.7.4; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.8.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -1620,10 +1620,7 @@ The requisite npm package file.
       "scripts" : { 
         "test" : "node ./test.js"
       },
-      "keywords": ["literate programming"],
-      "bin": {
-        "litpro" : "./litpro.js"
-      }
+      "keywords": ["literate programming"]
     }
 
 
