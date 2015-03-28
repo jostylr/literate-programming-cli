@@ -10,6 +10,8 @@ var args = mod.opts.parse();
 
 var Folder = mod.Folder;
 
+Folder.prototype.encoding = args.encoding;
+
 Folder.lprc(args.lprc, args);
 
 Folder.cache.firstLoad(args.cache, args.cachefile);

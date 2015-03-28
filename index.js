@@ -65,7 +65,6 @@ Folder.actions = {"on" : [
                 {encoding:encoding},  function (err) {
                 if (err) {
                     mkdirp(fpath, function (err) {
-                        console.log(fpath);
                         if (err) {
                             gcd.emit("error:directory not makeable", fpath);
                         } else {
@@ -79,7 +78,7 @@ Folder.actions = {"on" : [
                                 });
                         }
                     });
-                } else{
+                } else {
                     folder.log("SAVED: " + 
                          "./" + shortname );
                     folder.checksum.data[shortname] = sha; 
@@ -359,8 +358,6 @@ Folder.async("execfresh", function (text, args, callback  ) {
          "\n\nACTING ON:\n" + text);
     }
 });
-
-Folder.prototype.encoding = "utf8";
 
 Folder.exit = function () {
     var Folder  = this; 
@@ -695,9 +692,6 @@ Folder.fcd.on("dir exec requested", function (cmd, evObj) {
     }
 });
 
-var iconv = require('iconv-lite'); 
-iconv.extendNodeEncodings();
-
 var opts = require("nomnom").
     options({
         "file": {
@@ -710,13 +704,6 @@ var opts = require("nomnom").
             abbr : "e",
             default : "utf8",
             help : "default encoding to use. Defaults to utf8",
-            callback : function (enc) {
-                if (iconv.encodingExists(enc) ) {
-                    Folder.prototype.encoding = enc;
-                } else {
-                    return "Bad encoding. Please check iconv.lite's list of encodings.";
-                }
-            }
         },
         build : {
             abbr: "b",
@@ -836,15 +823,15 @@ module.exports.tests = function (litpro) {
     var checkdir = function (dir) {
         var ret = [];
         var count = 0;
-        var actuals = readdir( resolve("tests", dir, "canonical") );
-        actuals.forEach(function(rel){
+        var expecteds = readdir( resolve("tests", dir, "canonical") );
+        expecteds.forEach(function(rel){
             count += 1;
-            var a = read(resolve("tests", dir, "canonical", rel));
-            var e = read(resolve("tests", dir, rel));
-            if (!(equals(a, e))) {
-                if (isUtf8(a) && isUtf8(e) ) {
-                    ret.push(rel + "\n~~~\n" + a.toString() + "\n~~~\n" + 
-                        e.toString() + "\n---\n\n");
+            var e = read(resolve("tests", dir, "canonical", rel));
+            var a = read(resolve("tests", dir, rel));
+            if (!(equals(e, a))) {
+                if (isUtf8(e) && isUtf8(a) ) {
+                    ret.push(rel + "\n~~~Expected\n" + e.toString() + "\n~~~Actual\n" + 
+                        a.toString() + "\n---\n\n");
                 } else {
                     ret.push(rel);
                 }

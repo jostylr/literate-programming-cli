@@ -59,6 +59,8 @@ files.
 
     var Folder = mod.Folder;
 
+    Folder.prototype.encoding = args.encoding;
+
     Folder.lprc(args.lprc, args);
 
     Folder.cache.firstLoad(args.cache, args.cachefile);
@@ -94,8 +96,6 @@ The directories are a bit tricky.
 
     _"preload"
     
-    _"encodings"
-
     var opts = require("nomnom").
         options(_"cli options").
         script("litpro");
@@ -127,8 +127,6 @@ something. For example, we could enable logging with the gcd.
 
     _"new commands"
     
-    Folder.prototype.encoding = "utf8";
-
     Folder.exit = _":exit";
 
     Folder.process = _":process";
@@ -314,7 +312,7 @@ saving one.
                     {encoding:encoding},  function (err) {
                     if (err) {
                         _":mkdirp";
-                    } else{
+                    } else {
                         folder.log("SAVED: " + 
                              "./" + shortname );
                         folder.checksum.data[shortname] = sha; 
@@ -334,7 +332,6 @@ saving one.
 This makes the directory if it does not exist. 
 
     mkdirp(fpath, function (err) {
-        console.log(fpath);
         if (err) {
             gcd.emit("error:directory not makeable", fpath);
         } else {
@@ -486,13 +483,16 @@ This is the cached form of a command line execution from a directive.
       
 ## Encodings
 
-This enables us to read files of various different encodings. We use
-iconv-lite. 
+For more encodings, load up litpro-iconv-lite. The default is just node's
+defaults: 
 
-    var iconv = require('iconv-lite'); 
-    iconv.extendNodeEncodings();
- 
-This should turn read and write files into wonderful manifold encodings. 
+* 'ascii' - for 7 bit ASCII data only. 
+* 'utf8' - Multibyte encoded Unicode characters. Many web pages and other document formats use UTF-8.
+* 'utf16le' - 2 or 4 bytes, little endian encoded Unicode characters. Surrogate pairs (U+10000 to U+10FFFF) are supported.
+* 'ucs2' - Alias of 'utf16le'.
+* 'base64' - Base64 string encoding.
+* 'hex' - Encode each byte as two hexadecimal characters.
+
 
 [option]() 
 
@@ -500,13 +500,6 @@ This should turn read and write files into wonderful manifold encodings.
         abbr : "e",
         default : "utf8",
         help : "default encoding to use. Defaults to utf8",
-        callback : function (enc) {
-            if (iconv.encodingExists(enc) ) {
-                Folder.prototype.encoding = enc;
-            } else {
-                return "Bad encoding. Please check iconv.lite's list of encodings.";
-            }
-        }
     }
 
 
@@ -1407,15 +1400,15 @@ Inspired by [assert-dir-equal](https://github.com/ianstormtaylor/assert-dir-equa
     function (dir) {
         var ret = [];
         var count = 0;
-        var actuals = readdir( resolve("tests", dir, "canonical") );
-        actuals.forEach(function(rel){
+        var expecteds = readdir( resolve("tests", dir, "canonical") );
+        expecteds.forEach(function(rel){
             count += 1;
-            var a = read(resolve("tests", dir, "canonical", rel));
-            var e = read(resolve("tests", dir, rel));
-            if (!(equals(a, e))) {
-                if (isUtf8(a) && isUtf8(e) ) {
-                    ret.push(rel + "\n~~~\n" + a.toString() + "\n~~~\n" + 
-                        e.toString() + "\n---\n\n");
+            var e = read(resolve("tests", dir, "canonical", rel));
+            var a = read(resolve("tests", dir, rel));
+            if (!(equals(e, a))) {
+                if (isUtf8(e) && isUtf8(a) ) {
+                    ret.push(rel + "\n~~~Expected\n" + e.toString() + "\n~~~Actual\n" + 
+                        a.toString() + "\n---\n\n");
                 } else {
                     ret.push(rel);
                 }
@@ -1490,7 +1483,7 @@ use other directory names for those.
         ["notsave", "-b seen test.md" ],
         ["first",  "first.md second.md"],
         ["lprc", ""],
-        ["encoding", "-e utf16 enc.md -b ."]
+        ["encoding", "-e ucs2 ucs2.md -b ."]
     );
 
 
@@ -1699,7 +1692,7 @@ A travis.yml file for continuous test integration!
 
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
-    deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, iconv-lite 0.4.7, 
+    deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, 
         literate-programming-lib 1.5.2, mkdirp 0.5.0, needle 0.7.11,
         nomnom 1.8.1;
     dev: litpro-jshint 0.1.0, tape 3.5.0, del 1.1.1, is-utf8 0.2.0")
