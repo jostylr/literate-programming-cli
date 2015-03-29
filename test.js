@@ -6,6 +6,7 @@ tests(
     ["first",  "first.md second.md"],
     ["build", "-b seen test.md; node ../../litpro.js -b seen/ test.md" ],
     ["checksum", "-b . --checksum awesome  project.md"],
-    ["lprc", ""],
-    ["encoding", "-e ucs2 ucs2.md -b ."]
+    ["diff", "first.md; node ../../litpro.js -d second.md"],
+    ["encoding", "-e ucs2 ucs2.md -b ."],
+    ["lprc", ""]
 );

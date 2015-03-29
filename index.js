@@ -327,17 +327,18 @@ Folder.process = function (args) {
         var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
         var fpath = folder.build;
         var fullname = fpath + sep + filename; 
+        var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
         fpath = fpath + (firstpart ? sep + firstpart : "");
-        if (folder.checksum.tosave(fullname, text) ) {
-            if (folder.checksum.data.hasOwnProperty(fullname) ) {
+        if (folder.checksum.tosave(shortname, text) ) {
+            if (folder.checksum.data.hasOwnProperty(shortname) ) {
                 fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
                     var result, ret; 
                     if (err) {
-                        folder.log("Could not read old file" + fullname + 
+                        folder.log("Could not read old file" + shortname + 
                             " despite it being in the checksum file." );
                     } else {
                         ret = '';
-                        result = diff.diffLines(oldtext, text);
+                        result = diff.diffLines(text, oldtext);
                         result.forEach(function (part) {
                             if (part.added) {
                                 ret += colors.green(part.value);
@@ -345,17 +346,17 @@ Folder.process = function (args) {
                                 ret += colors.red(part.value);
                             }
                         });
-                        //folder.log("Diff on " + fullname +":\n\n" + ret+ "\n----\n" );
+                        //folder.log("Diff on " + shortname +":\n\n" + ret+ "\n----\n" );
                         
-                        folder.log(diff.createPatch(fullname, oldtext, text, "old", "new"));
+                        folder.log(diff.createPatch(shortname, oldtext, text, "old", "new"));
                     }
                 });
             } else {
-                folder.log("New file " + fullname + ":\n\n" + text +
+                folder.log("New file " + shortname + ":\n\n" + text +
                     "\n----\n");
             }
         } else {
-            folder.log("File " + fullname + " unchanged.");
+            folder.log("File " + shortname + " unchanged.");
         }
     };
 
