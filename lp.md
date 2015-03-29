@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.8.1; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.8.2; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -55,6 +55,8 @@ files.
 
     var args = mod.opts.parse();
 
+    _":build stripping"
+
     _":arg z"
 
     //console.log(args);
@@ -68,6 +70,18 @@ files.
     Folder.process(args);
 
     process.on('exit', Folder.exit());
+
+[build stripping]()
+
+The goal is to remove a trailing slash from the file names. 
+
+    args.build = args.build.map(function (el) {
+        if (el.slice(-1) === "/") {
+            return el.slice(0, -1);
+        } else {
+            return el;
+        }
+    });
 
 
 [arg z]()
@@ -592,11 +606,6 @@ This sets up the default directories.
         abbr: "s",
         default : root + "src",
         help: "Where to load inernally requested litpro documents from"
-    },
-    cache : {
-        abbr : "c",
-        default : root + "cache",
-        help: "A place to stored downloaded files for caching"
     }
     
 
@@ -1105,7 +1114,7 @@ use other directory names for those.
 
     tests( 
         ["first",  "first.md second.md"],
-        ["build", "-b seen test.md" ],
+        ["build", "-b seen test.md; node ../../litpro.js -b seen/ test.md" ],
         ["checksum", "-b . --checksum awesome  project.md"],
         ["lprc", ""],
         ["encoding", "-e ucs2 ucs2.md -b ."]

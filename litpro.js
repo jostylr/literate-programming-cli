@@ -6,6 +6,14 @@ var mod = require('./index.js');
 
 var args = mod.opts.parse();
 
+args.build = args.build.map(function (el) {
+    if (el.slice(-1) === "/") {
+        return el.slice(0, -1);
+    } else {
+        return el;
+    }
+});
+
 args.other.forEach(function (arg) {
     var pair = arg.split(":");
     if (pair.length === 1) {

@@ -591,11 +591,6 @@ var opts = require("nomnom").
             default : root + "src",
             help: "Where to load inernally requested litpro documents from"
         },
-        cache : {
-            abbr : "c",
-            default : root + "cache",
-            help: "A place to stored downloaded files for caching"
-        },
         checksum : {
             default : ".checksum",
             help: "A list of the files and their sha1 sums to avoid rewriting." +
