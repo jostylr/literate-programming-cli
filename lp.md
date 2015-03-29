@@ -1137,6 +1137,7 @@ use other directory names for those.
         ["files", "--file=first.md --file=second.md  third.md"],
         ["nofile", ""],
         ["nofilenoproject", ""],
+        ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
         ["lprc", ""]
     );
 
@@ -1151,7 +1152,7 @@ use other directory names for those.
 * files. Specifying multiple files.
 * no file. No file specified should lead to project.md
 * no file, no project. What happens if project.md does not exist?
-* bad files. What happens if a file is specified that does not exist. 
+* bad file. What happens if a file is to be loaded but it does not exist. 
 * flags. A couple of flags to test that out.
 * in. A standard input; may need to something fancy. 
 * lprc. Checks use of lprc.js file
@@ -1171,7 +1172,10 @@ use other directory names for those.
 
  # literate-programming-cli   
 
-This is the command line client for literate-programming. 
+This is the command line client module for literate-programming. The intent of
+this one is to build the command line clients using this module as a baseline. 
+
+To use the thin client, see [litpro]()
 
 Install using `npm install literate-programming-cli`
 

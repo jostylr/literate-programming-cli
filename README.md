@@ -1,6 +1,9 @@
 # literate-programming-cli   
 
-This is the command line client for literate-programming. 
+This is the command line client module for literate-programming. The intent of
+this one is to build the command line clients using this module as a baseline. 
+
+To use the thin client, see [litpro]()
 
 Install using `npm install literate-programming-cli`
 

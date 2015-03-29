@@ -13,6 +13,6 @@ tests(
     ["files", "--file=first.md --file=second.md  third.md"],
     ["nofile", ""],
     ["nofilenoproject", ""],
-    ["badfiles", "bad.md"],
+    ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
     ["lprc", ""]
 );
