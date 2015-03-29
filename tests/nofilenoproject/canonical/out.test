@@ -1,0 +1,2 @@
+error:file not read:project.md INFO: project.md,Error: ENOENT, open 'project.md'
+DONE: ./build

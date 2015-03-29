@@ -1135,6 +1135,8 @@ use other directory names for those.
         ["diff-new", "first.md; node ../../litpro.js -d second.md"],
         ["encoding", "-e ucs2 ucs2.md -b ."],
         ["files", "--file=first.md --file=second.md  third.md"],
+        ["nofile", ""],
+        ["nofilenoproject", ""],
         ["lprc", ""]
     );
 
