@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.8.2; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.8.4; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -581,6 +581,14 @@ to overwrite whatever they like in it though ideally they play nice.
             help : "Other plugin key values",
             list : true,
             default : []
+        },
+        version : {
+            abbr : "v", 
+            flag : true,
+            help : "version number",
+            callback : function () {
+                return "v._`g::docversion`";
+            }
         }
 
 
@@ -855,9 +863,11 @@ This is the directive for reading a file and storing its text.
     function (args) {
         var doc = this;
         var gcd = doc.gcd;
+        var folder = doc.parent;
         var colon = doc.colon;
         var name = colon.escape(args.link);
         var filename = args.href; 
+        var fullname =  folder.src + sep + filename;
         var emitname = colon.escape(filename);
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
@@ -870,7 +880,7 @@ This is the directive for reading a file and storing its text.
 
    
         doc.parent.Folder.fcd.cache(
-            ["read file:" + emitname, [filename, encoding]],
+            ["read file:" + emitname, [fullname, encoding]],
             "file read:" + emitname,
             function (data) {
                 var err = data[0];
@@ -883,6 +893,9 @@ This is the directive for reading a file and storing its text.
             }
         );
     }
+
+
+
 
 [deal with pipes]()
 
@@ -1114,11 +1127,14 @@ use other directory names for those.
     var tests = require('literate-programming-cli-test')("node ../../litpro.js");
 
     tests( 
-        ["first",  "first.md second.md"],
+        ["first",  "first.md second.md -s ."],
         ["build", "-b seen test.md; node ../../litpro.js -b seen/ test.md" ],
         ["checksum", "-b . --checksum awesome  project.md"],
-        ["diff", "first.md; node ../../litpro.js -d second.md"],
+        ["diff-change", "first.md; node ../../litpro.js -d second.md"],
+        ["diff-static", "first.md; node ../../litpro.js -d second.md"],
+        ["diff-new", "first.md; node ../../litpro.js -d second.md"],
         ["encoding", "-e ucs2 ucs2.md -b ."],
+        ["files", "--file=first.md --file=second.md  third.md"],
         ["lprc", ""]
     );
 
@@ -1347,7 +1363,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, 
-        literate-programming-lib 1.5.2, mkdirp 0.5.0, 
+        literate-programming-lib 1.5.3, mkdirp 0.5.0, 
         nomnom 1.8.1;
     dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.1.0")
 

@@ -1,0 +1,11 @@
+SAVED: ./build/change.txt
+DONE: ./build
+Index: build/change.txt
+===================================================================
+--- build/change.txt	old
++++ build/change.txt	new
+@@ -1,1 +1,1 @@
++Hey This is great. Yeah
+-Hey This is great.
+
+DONE: ./build

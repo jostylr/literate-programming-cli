@@ -193,9 +193,11 @@ Folder.directives.execfresh = function (args) {
 Folder.directives.readfile = function (args) {
     var doc = this;
     var gcd = doc.gcd;
+    var folder = doc.parent;
     var colon = doc.colon;
     var name = colon.escape(args.link);
     var filename = args.href; 
+    var fullname =  folder.src + sep + filename;
     var emitname = colon.escape(filename);
     var cut = args.input.indexOf("|");
     var encoding = args.input.slice(0,cut);
@@ -208,7 +210,7 @@ Folder.directives.readfile = function (args) {
 
 
     doc.parent.Folder.fcd.cache(
-        ["read file:" + emitname, [filename, encoding]],
+        ["read file:" + emitname, [fullname, encoding]],
         "file read:" + emitname,
         function (data) {
             var err = data[0];
@@ -628,6 +630,14 @@ var opts = require("nomnom").
             help : "Other plugin key values",
             list : true,
             default : []
+        },
+        version : {
+            abbr : "v", 
+            flag : true,
+            help : "version number",
+            callback : function () {
+                return "v.0.8.4";
+            }
         }
     
     
