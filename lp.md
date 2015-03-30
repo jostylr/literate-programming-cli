@@ -1136,7 +1136,8 @@ use other directory names for those.
         ["encoding", "-e ucs2 ucs2.md -b ."],
         ["files", "--file=first.md --file=second.md  third.md"],
         ["nofile", ""],
-        ["nofilenoproject", ""],
+        ["nofilenoproject", "", _":no project"],
+        ["badfiles", "", _":bad files"],
         ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
         ["lprc", ""]
     );
@@ -1162,6 +1163,29 @@ use other directory names for those.
 * other. Check boolean, array, single value, a colon with nothing after it,
   and something that overwrites another argument.
 
+
+[no project]()
+
+This should handle the matching of the target given the different strings. 
+
+    { "out.test" : function (canonical, build) {
+            build = build.toString().replace(": no such file or directory, ", ", ");
+            return build.trim() === canonical.toString().trim();
+        }
+    }
+
+[bad files]()
+
+Here we want to cut up the out.test file into separate lines, sort them and
+compare, making sure the error line is a short comparison due to the end
+issues. We also will use checksum to make sure only the files we want are
+there. 
+
+    {   "out.test" : tests.split(function (a, e) {
+            return a.slice(0, 10) === e.slice(0,10);
+        }),
+        "build/.checksum" : tests.json
+    }
 
 
 
@@ -1371,5 +1395,5 @@ by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ;
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, 
         literate-programming-lib 1.5.3, mkdirp 0.5.0, 
         nomnom 1.8.1;
-    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.1.0")
+    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.3.0")
 

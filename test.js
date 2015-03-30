@@ -12,7 +12,16 @@ tests(
     ["encoding", "-e ucs2 ucs2.md -b ."],
     ["files", "--file=first.md --file=second.md  third.md"],
     ["nofile", ""],
-    ["nofilenoproject", ""],
+    ["nofilenoproject", "", { "out.test" : function (canonical, build) {
+            build = build.toString().replace(": no such file or directory, ", ", ");
+            return build.trim() === canonical.toString().trim();
+        }
+    }],
+    ["badfiles", "", {   "out.test" : tests.split(function (a, e) {
+            return a.slice(0, 10) === e.slice(0,10);
+        }),
+        "build/.checksum" : tests.json
+    }],
     ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
     ["lprc", ""]
 );

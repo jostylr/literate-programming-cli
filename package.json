@@ -34,7 +34,7 @@
   },
   "devDependencies" : {
     "litpro-jshint" : "^0.1.0",
-    "literate-programming-cli-test" : "^0.1.0"
+    "literate-programming-cli-test" : "^0.3.0"
   },
   "scripts" : { 
     "test" : "node ./test.js"
