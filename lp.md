@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.8.4; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.8.5; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -214,9 +214,15 @@ event.
 This is what happens after all the initiation and parsing of cli options. It
 actually initiates the compiling. It receives the parsed arguments. 
 
+Builds should be an array, but if manually overwritten, it could become a
+string. We check for this and make it into an array if so.
+
     function (args) {
         var Folder = this;
         var builds = args.build;
+        if (typeof builds === "string") {
+            builds = [builds]; 
+        }
         var build, folder, gcd, colon, emitname, i, n, j, m, k, o;
         var fcd = Folder.fcd;
 
@@ -228,7 +234,7 @@ actually initiates the compiling. It receives the parsed arguments.
 
         n = builds.length;
         for (i = 0; i < n; i += 1) {
-            build = args.build[i];
+            build = builds[i];
             folder = new Folder();
             Folder.folders[build] = folder;
 
@@ -1139,7 +1145,8 @@ use other directory names for those.
         ["nofilenoproject", "", _":no project"],
         ["badfiles", "", _":bad files"],
         ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
-        ["lprc", ""]
+        ["lprc", ""],
+        ["stringbuild", ""]
     );
 
 

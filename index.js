@@ -316,6 +316,9 @@ Folder.exit = function () {
 Folder.process = function (args) {
     var Folder = this;
     var builds = args.build;
+    if (typeof builds === "string") {
+        builds = [builds]; 
+    }
     var build, folder, gcd, colon, emitname, i, n, j, m, k, o;
     var fcd = Folder.fcd;
 
@@ -394,7 +397,7 @@ Folder.process = function (args) {
 
     n = builds.length;
     for (i = 0; i < n; i += 1) {
-        build = args.build[i];
+        build = builds[i];
         folder = new Folder();
         Folder.folders[build] = folder;
 
@@ -636,7 +639,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.8.4";
+                return "v.0.8.5";
             }
         }
     

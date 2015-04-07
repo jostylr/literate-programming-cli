@@ -23,5 +23,6 @@ tests(
         "build/.checksum" : tests.json
     }],
     ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
-    ["lprc", ""]
+    ["lprc", ""],
+    ["stringbuild", ""]
 );
