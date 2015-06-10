@@ -1,7 +1,7 @@
 {
   "name": "literate-programming-cli",
   "description": "Basic command line for literate-programming",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "homepage": "https://github.com/jostylr/literate-programming-cli",
   "author": {
     "name": "James Taylor",
@@ -14,12 +14,7 @@
   "bugs": {
     "url": "https://github.com/jostylr/literate-programming-cli/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/jostylr/literate-programming-cli/blob/master/LICENSE-MIT"
-    }
-  ],
+  "license": "MIT",
   "main": "index.js",
   "engines": {
     "node": ">=0.10"
@@ -28,7 +23,7 @@
     "checksum" : "^0.1.1",
     "colors" : "^1.0.3",
     "diff" : "^1.2.2",
-    "literate-programming-lib" : "^1.5.3",
+    "literate-programming-lib" : "^1.5.4",
     "mkdirp" : "^0.5.0",
     "nomnom" : "^1.8.1"
   },

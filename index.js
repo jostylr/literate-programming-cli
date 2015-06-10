@@ -639,7 +639,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.8.5";
+                return "v.0.8.6";
             }
         }
     
