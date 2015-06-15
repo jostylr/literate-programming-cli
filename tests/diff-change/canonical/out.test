@@ -4,8 +4,13 @@ Index: build/change.txt
 ===================================================================
 --- build/change.txt	old
 +++ build/change.txt	new
-@@ -1,1 +1,1 @@
-+Hey This is great. Yeah
--Hey This is great.
+@@ -1,5 +1,5 @@
+ Hey This is great.
+ 
++Yeah
++
+ Sure is.
+-
+-Yep.
 
 DONE: ./build
