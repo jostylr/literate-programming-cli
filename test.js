@@ -1,8 +1,9 @@
 /*global require */
 
-var tests = require('literate-programming-cli-test')("node ../../litpro.js");
+var tests = require('literate-programming-cli-test')("node ../../litpro.js",
+    "hideConsole");
 
-tests( 
+tests.apply(null, [ 
     ["first",  "first.md second.md -s ."],
     ["build", "-b seen test.md; node ../../litpro.js -b seen/ test.md" ],
     ["checksum", "-b . --checksum awesome  project.md"],
@@ -25,4 +26,5 @@ tests(
     ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
     ["lprc", ""],
     ["stringbuild", ""]
+    ].slice(0)
 );

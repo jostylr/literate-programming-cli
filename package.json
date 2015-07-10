@@ -1,7 +1,7 @@
 {
   "name": "literate-programming-cli",
   "description": "Basic command line for literate-programming",
-  "version": "0.8.6",
+  "version": "0.9.0",
   "homepage": "https://github.com/jostylr/literate-programming-cli",
   "author": {
     "name": "James Taylor",
@@ -23,13 +23,13 @@
     "checksum" : "^0.1.1",
     "colors" : "^1.0.3",
     "diff" : "^1.2.2",
-    "literate-programming-lib" : "^1.5.4",
+    "literate-programming-lib" : "^1.6.1",
     "mkdirp" : "^0.5.0",
     "nomnom" : "^1.8.1"
   },
   "devDependencies" : {
     "litpro-jshint" : "^0.1.0",
-    "literate-programming-cli-test" : "^0.3.0"
+    "literate-programming-cli-test" : "^0.4.0"
   },
   "scripts" : { 
     "test" : "node ./test.js"

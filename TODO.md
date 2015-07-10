@@ -1,4 +1,9 @@
 
+Most of these are done. New todo: review todo. 
+
+test the command line functions; currently a manual process as need to write
+new ones tha are not dynamic. I suppose can test using the echo function. 
+
 preview, diff command mode
 
 

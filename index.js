@@ -105,11 +105,19 @@ Folder.directives.exec = function (args) {
         pipes = command.slice(ind + separ.length);
         command = command.slice(0,ind);
     }
-
+    
     var name = colon.escape(args.link);
     var emitname = "exec:"+name;
-    var f;
-
+    var f = function (data) {
+        if (name) {
+            doc.store(name, data);
+        }
+    };
+    
+    var start = doc.getBlock(args.href, args.cur);
+    console.log(pipes, emitname, start, command);
+    
+    doc.pipeDirSetup( pipes, emitname, f, start);  
 
     var fcdname = colon.escape(command); 
 
@@ -124,21 +132,7 @@ Folder.directives.exec = function (args) {
                gcd.emit("error:execute", [command, err]); 
             } else {
                 if (stdout) {
-                    if (pipes) {
-                        pipes += '"';
-                        f = function (data) {
-                            if (name) {
-                                doc.store(name, data);
-                            }
-                        };
-                        gcd.once("text ready:" + emitname, f);
-                        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
-                        gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
-                    } else {
-                        if (name) {
-                            doc.store(name, stdout);
-                        }
-                    }
+                    gcd.emit("text ready:" + emitname + colon.v + "sp", stdout);
                 }
             }
         }
@@ -157,32 +151,26 @@ Folder.directives.execfresh = function (args) {
         pipes = command.slice(ind + separ.length);
         command = command.slice(0,ind);
     }
-
+    
     var name = colon.escape(args.link);
     var emitname = "execfresh:"+name;
-    var f;
-
+    var f = function (data) {
+        if (name) {
+            doc.store(name, data);
+        }
+    };
+    
+    var start = doc.getBlock(args.href, args.cur);
+    console.log(pipes, emitname, start, command);
+    
+    doc.pipeDirSetup( pipes, emitname, f, start);  
 
     exec(command, function (err, stdout, stderr) {
         if (err) {
            gcd.emit("error:execute", [command, err, stderr]); 
         } else {
             if (stdout) {
-                if (pipes) {
-                    pipes += '"';
-                    f = function (data) {
-                        if (name) {
-                            doc.store(name, data);
-                        }
-                    };
-                    gcd.once("text ready:" + emitname, f);
-                    doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
-                    gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
-                } else {
-                    if (name) {
-                        doc.store(name, stdout);
-                    }
-                }
+                gcd.emit("text ready:" + emitname + colon.v + "sp", stdout);
             }
             if (stderr) {
                 gcd.emit("error:execute output", [command, stderr]);
@@ -202,12 +190,16 @@ Folder.directives.readfile = function (args) {
     var cut = args.input.indexOf("|");
     var encoding = args.input.slice(0,cut);
     var pipes = args.input.slice(cut+1);
-    var f;
-
+    var f = function (data) {
+        if (name) {
+            doc.store(name, data);
+        }
+    };
+    var start = doc.getBlock(args.cur, args.cur);
 
     encoding = encoding.trim() || doc.parent.encoding || "utf8";
 
-
+    doc.pipeDirSetup( pipes, emitname, f, start);  
 
     doc.parent.Folder.fcd.cache(
         ["read file:" + emitname, [fullname, encoding]],
@@ -218,21 +210,7 @@ Folder.directives.readfile = function (args) {
             if (err) {
                gcd.emit("error:readfile", [filename, name, err]); 
             } else {
-                if (pipes) {
-                    pipes += '"';
-                    f = function (data) {
-                        if (name) {
-                            doc.store(name, data);
-                        }
-                    };
-                    gcd.once("text ready:" + emitname, f);
-                    doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
-                    gcd.emit("text ready:" + emitname + colon.v + "0", text);
-                } else {
-                    if (name) {
-                        doc.store(name, text);
-                    }
-                } 
+                gcd.emit("text ready:" + emitname + colon.v + "sp", text);
             }
         }
     );
@@ -292,14 +270,12 @@ Folder.exit = function () {
         for ( build in folders) {
             folder = folders[build];
             arr = folder.reportwaits();
-       
+            arr.push.apply(arr, folder.simpleReport());
             if ( arr.length) {
-                console.log( "STILL WAITING: ./" + build.replace(root, "").
-                    replace(/\.$/, '') +
-                "\n---\n" + arr.join("\n") + "\n\n");
+                console.log( "STILL WAITING: ./" + path.relative(root, build) +
+                    "\n---\n" + arr.join("\n") + "\n\n");
             } else {
-                console.log( "DONE: ./"  + build.replace(root, "").  
-                    replace(/\.$/, '') );
+                console.log( "DONE: ./" + path.relative(root, build));
             }
 
 
@@ -405,7 +381,7 @@ Folder.process = function (args) {
         folder.src = args.src;
         gcd = folder.gcd;
         colon = folder.colon;
-        folder.flags[build] = true;
+        folder.flags[path.relative(root, build)] = true;
         o = args.flag.length;
         for (k = 0; k < o; k+=1) {
             folder.flags[args.flag[k]] = true;
@@ -586,6 +562,7 @@ var opts = require("nomnom").
             abbr: "b",
             list: true,
             default : [root + "build"],
+            transform : path.resolve, 
             help : "Specify the build directory." +
                 " Specifying multiple builds do multiple builds." +
                 " The build is passed in as a flag per build." 
@@ -595,6 +572,7 @@ var opts = require("nomnom").
         src : {
             abbr: "s",
             default : root + "src",
+            transform : path.resolve, 
             help: "Where to load inernally requested litpro documents from"
         },
         checksum : {
@@ -605,6 +583,7 @@ var opts = require("nomnom").
         "lprc": {
             abbr : "l",
             default : root + "lprc.js",
+            transform : path.resolve, 
             help : "specify an alternate lprc.js file"
         }, 
         diff : {
@@ -639,7 +618,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.8.6";
+                return "v.0.9.0";
             }
         }
     

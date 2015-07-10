@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.8.6; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.9.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -59,7 +59,7 @@ files.
 
     _":arg z"
 
-    //console.log(args);
+    //console.warn("!!", args);
 
     var Folder = mod.Folder;
 
@@ -187,14 +187,12 @@ event.
             for ( build in folders) {
                 folder = folders[build];
                 arr = folder.reportwaits();
-           
+                arr.push.apply(arr, folder.simpleReport());
                 if ( arr.length) {
-                    console.log( "STILL WAITING: ./" + build.replace(root, "").
-                        replace(/\.$/, '') +
-                    "\n---\n" + arr.join("\n") + "\n\n");
+                    console.log( "STILL WAITING: ./" + path.relative(root, build) +
+                        "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log( "DONE: ./"  + build.replace(root, "").  
-                        replace(/\.$/, '') );
+                    console.log( "DONE: ./" + path.relative(root, build));
                 }
 
 
@@ -258,7 +256,7 @@ string. We check for this and make it into an array if so.
     folder.src = args.src;
     gcd = folder.gcd;
     colon = folder.colon;
-    folder.flags[build] = true;
+    folder.flags[path.relative(root, build)] = true;
     o = args.flag.length;
     for (k = 0; k < o; k+=1) {
         folder.flags[args.flag[k]] = true;
@@ -559,6 +557,7 @@ to overwrite whatever they like in it though ideally they play nice.
         "lprc": {
             abbr : "l",
             default : root + "lprc.js",
+            transform : path.resolve, 
             help : "specify an alternate lprc.js file"
         }, 
         diff : {
@@ -610,6 +609,7 @@ This sets up the default directories.
         abbr: "b",
         list: true,
         default : [root + "build"],
+        transform : path.resolve, 
         help : "Specify the build directory." +
             " Specifying multiple builds do multiple builds." +
             " The build is passed in as a flag per build." 
@@ -619,6 +619,7 @@ This sets up the default directories.
     src : {
         abbr: "s",
         default : root + "src",
+        transform : path.resolve, 
         help: "Where to load inernally requested litpro documents from"
     }
     
@@ -756,23 +757,7 @@ Piping of the standard output internally can be done by use the separator
 `[name](# "exec:command line command")`
 
     function (args) {
-        var doc = this;
-        var gcd = doc.gcd;
-        var colon = doc.colon;
-        Folder = doc.parent.Folder;
-        var command = args.input;
-        var separ = Folder.execseparator;
-        var ind = command.indexOf(separ);
-        var pipes = '';
-        if (ind !== -1) {
-            pipes = command.slice(ind + separ.length);
-            command = command.slice(0,ind);
-        }
-
-        var name = colon.escape(args.link);
-        var emitname = "exec:"+name;
-        var f;
-
+        _":common | sub execfresh, exec"
 
         var fcdname = colon.escape(command); 
 
@@ -787,12 +772,43 @@ Piping of the standard output internally can be done by use the separator
                    gcd.emit("error:execute", [command, err]); 
                 } else {
                     if (stdout) {
-                        _":dealing with stdout"
+                        gcd.emit("text ready:" + emitname + colon.v + "sp", stdout);
                     }
                 }
             }
         );
     }
+
+[common]()
+
+This is common to both exec and execfresh
+
+
+    var doc = this;
+    var gcd = doc.gcd;
+    var colon = doc.colon;
+    Folder = doc.parent.Folder;
+    var command = args.input;
+    var separ = Folder.execseparator;
+    var ind = command.indexOf(separ);
+    var pipes = '';
+    if (ind !== -1) {
+        pipes = command.slice(ind + separ.length);
+        command = command.slice(0,ind);
+    }
+
+    var name = colon.escape(args.link);
+    var emitname = "execfresh:"+name;
+    var f = function (data) {
+        if (name) {
+            doc.store(name, data);
+        }
+    };
+
+    var start = doc.getBlock(args.href, args.cur);
+    console.log(pipes, emitname, start, command);
+
+    doc.pipeDirSetup( pipes, emitname, f, start);  
 
 
         
@@ -805,56 +821,20 @@ This is the version that is not cached.
 
 
     function (args) {
-        var doc = this;
-        var gcd = doc.gcd;
-        var colon = doc.colon;
-        Folder = doc.parent.Folder;
-        var command = args.input;
-        var separ = Folder.execseparator;
-        var ind = command.indexOf(separ);
-        var pipes = '';
-        if (ind !== -1) {
-            pipes = command.slice(ind + separ.length);
-            command = command.slice(0,ind);
-        }
-
-        var name = colon.escape(args.link);
-        var emitname = "execfresh:"+name;
-        var f;
-
+        _":common"
 
         exec(command, function (err, stdout, stderr) {
             if (err) {
                gcd.emit("error:execute", [command, err, stderr]); 
             } else {
                 if (stdout) {
-                    _":dealing with stdout"
+                    gcd.emit("text ready:" + emitname + colon.v + "sp", stdout);
                 }
                 if (stderr) {
                     gcd.emit("error:execute output", [command, stderr]);
                 }
             }
         });
-    }
-
-[dealing with stdout]()
-
-So we want to deal with piping if we a value and if we have pipes. 
-
-    if (pipes) {
-        pipes += '"';
-        f = function (data) {
-            if (name) {
-                doc.store(name, data);
-            }
-        };
-        gcd.once("text ready:" + emitname, f);
-        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
-        gcd.emit("text ready:" + emitname + colon.v + "0", stdout);
-    } else {
-        if (name) {
-            doc.store(name, stdout);
-        }
     }
 
 
@@ -878,13 +858,17 @@ This is the directive for reading a file and storing its text.
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
         var pipes = args.input.slice(cut+1);
-        var f;
-
+        var f = function (data) {
+            if (name) {
+                doc.store(name, data);
+            }
+        };
+        var start = doc.getBlock(args.cur, args.cur);
 
         encoding = encoding.trim() || doc.parent.encoding || "utf8";
 
+        doc.pipeDirSetup( pipes, emitname, f, start);  
 
-   
         doc.parent.Folder.fcd.cache(
             ["read file:" + emitname, [fullname, encoding]],
             "file read:" + emitname,
@@ -894,37 +878,11 @@ This is the directive for reading a file and storing its text.
                 if (err) {
                    gcd.emit("error:readfile", [filename, name, err]); 
                 } else {
-                    _":deal with pipes" 
+                    gcd.emit("text ready:" + emitname + colon.v + "sp", text);
                 }
             }
         );
     }
-
-
-
-
-[deal with pipes]()
-
-Really need to abstract common behavior. 
-
-    if (pipes) {
-        pipes += '"';
-        f = function (data) {
-            if (name) {
-                doc.store(name, data);
-            }
-        };
-        gcd.once("text ready:" + emitname, f);
-        doc.pipeParsing(pipes, 0, '"', emitname, args.cur);
-        gcd.emit("text ready:" + emitname + colon.v + "0", text);
-    } else {
-        if (name) {
-            doc.store(name, text);
-        }
-    }
-
-
-
 
 ## Checksum
 
@@ -1130,9 +1088,10 @@ use other directory names for those.
 
     /*global require */
 
-    var tests = require('literate-programming-cli-test')("node ../../litpro.js");
+    var tests = require('literate-programming-cli-test')("node ../../litpro.js",
+        "hideConsole");
 
-    tests( 
+    tests.apply(null, [ 
         ["first",  "first.md second.md -s ."],
         ["build", "-b seen test.md; node ../../litpro.js -b seen/ test.md" ],
         ["checksum", "-b . --checksum awesome  project.md"],
@@ -1147,6 +1106,7 @@ use other directory names for those.
         ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
         ["lprc", ""],
         ["stringbuild", ""]
+        ].slice(0)
     );
 
 
@@ -1263,6 +1223,11 @@ The various flags are
 
 
 ## TODO
+
+Most of these are done. New todo: review todo. 
+
+test the command line functions; currently a manual process as need to write
+new ones tha are not dynamic. I suppose can test using the echo function. 
 
 preview, diff command mode
 
@@ -1395,7 +1360,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.0.3, diff 1.2.2, 
-        literate-programming-lib 1.5.4, mkdirp 0.5.0, 
+        literate-programming-lib 1.6.1, mkdirp 0.5.0, 
         nomnom 1.8.1;
-    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.3.0")
+    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.4.0")
 
