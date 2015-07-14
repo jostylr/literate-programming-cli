@@ -240,7 +240,6 @@ Folder.async("exec", function (text, args, callback  ) {
 });
 
 Folder.async("execfresh", function (text, args, callback  ) {
-    var doc = this;
 
     var cmd =  args.join(" | ");
 
@@ -535,7 +534,7 @@ Folder.fcd.on("dir exec requested", function (cmd, evObj) {
 
 
     try {
-        var child = exec(cmd, 
+        exec(cmd, 
             function (err, stdout, stderr) {
                 fcd.emit("dir exec done:" + fcdname, [err || stderr, stdout]);
             });
@@ -618,7 +617,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.9.3";
+                return "v.0.9.4";
             }
         }
     

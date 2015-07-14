@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.9.3; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.9.4; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -502,7 +502,7 @@ This is the cached form of a command line execution from a directive.
 
 
         try {
-            var child = exec(cmd, 
+            exec(cmd, 
                 function (err, stdout, stderr) {
                     fcd.emit("dir exec done:" + fcdname, [err || stderr, stdout]);
                 });
@@ -702,7 +702,6 @@ the idea.
 This does not cache the command. 
 
     function (text, args, callback  ) {
-        var doc = this;
 
         var cmd =  args.join(" | ");
 
@@ -1360,7 +1359,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 1.6.4, mkdirp 0.5.1, 
+        literate-programming-lib 1.6.6, mkdirp 0.5.1, 
         nomnom 1.8.1;
-    dev: litpro-jshint 0.1.0, literate-programming-cli-test 0.5.1")
+    dev: litpro-jshint 0.2.1, literate-programming-cli-test 0.5.1")
 
