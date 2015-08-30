@@ -3,7 +3,7 @@
 We want to test reading in files and directories as well as writing a file
 from a command.
 
-    _"|readdir sample | .join \n"
+    _"|readdir sample |.sort | .join \n"
 
     _"|readfile samplefile.txt 
         | push 
