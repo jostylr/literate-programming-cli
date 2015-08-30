@@ -23,7 +23,9 @@ The various flags are
 * -d, --diff This computes the difference between each files from their
   existing versions. There is no saving of files.
 * -e, --encoding Specify the default encoding. It defaults to utf8, but any
-  encoding supported by iconv-lite works. To override that behavior per loaded
+  encoding supported by node works. To have more encodings, use the plugin
+  [litpro-iconv-lite](https://github.com/jostylr/litpro-iconv-lite) 
+  To override the command lined behavior per loaded
   file from a document, one can put the encoding between the colon and pipe in
   the directive title. This applies to both reading and writing. 
 * --file A specified file to process. It is possible to have multiple

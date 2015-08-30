@@ -66,18 +66,24 @@ Folder.actions = {"on" : [
                     mkdirp(fpath, function (err) {
                         if (err) {
                             gcd.emit("error:directory not makeable", fpath);
+                            gcd.emit("file not saved:" + emitname);
                         } else {
                             fs.writeFile(fullname, text, 
                                 {encoding:encoding},  function (err) {
                                     if (err) {
                                         gcd.emit("error:file not saveable",fullname);
+                                        gcd.emit("file not saved:" + emitname);
                                     } else {
-                                        console.log("File " + fullname + " saved");
+                                        gcd.emit("file saved:" + emitname);  
+                                        folder.log("SAVED: " + 
+                                             "./" + shortname );
+                                        folder.checksum.data[shortname] = sha; 
                                     }
                                 });
                         }
                     });
                 } else {
+                    gcd.emit("file saved:" + emitname);  
                     folder.log("SAVED: " + 
                          "./" + shortname );
                     folder.checksum.data[shortname] = sha; 
@@ -186,7 +192,7 @@ Folder.directives.readfile = function (args) {
     var name = colon.escape(args.link);
     var filename = args.href; 
     var fullname =  folder.src + sep + filename;
-    var emitname = colon.escape(filename);
+    var emitname = colon.escape(fullname);
     var cut = args.input.indexOf("|");
     var encoding = args.input.slice(0,cut);
     var pipes = args.input.slice(cut+1);
@@ -256,6 +262,62 @@ Folder.async("execfresh", function (text, args, callback  ) {
         callback(e.name + ":" + e.message +"\n"  + cmd + 
          "\n\nACTING ON:\n" + text);
     }
+});
+
+Folder.async("readfile", function (input, args, callback) {
+    var doc = this;
+    var colon = doc.colon;
+    var folder = doc.parent;
+    var filename = args[0] || input;
+    var fullname = folder.src + sep + filename; 
+    var encoding = args[1] || folder.encoding || "utf8";
+    var emitname =  colon.escape(fullname);
+
+
+    doc.parent.Folder.fcd.cache(
+        ["read file:" + emitname, [fullname, encoding]],
+        "file read:" + emitname,
+        function (data) {
+            var err = data[0];
+            var text = data[1];
+            callback(err, text);
+        }
+    );
+});
+
+Folder.async("readdir", function (input, args, callback) {
+    var doc = this;
+    var colon = doc.colon;
+    var folder = doc.parent;
+    var dirname = args[0] || input;
+    var fullname = folder.src + sep + dirname; 
+    var emitname =  colon.escape(fullname);
+
+    doc.parent.Folder.fcd.cache(
+        ["read directory:" + emitname, fullname],
+        "directory read:" + emitname,
+        function (data) {
+            var err = data[0];
+            var text = data[1];
+            callback(err, text);
+        }
+    );
+});
+
+Folder.async("savefile", function (text, args, callback) {
+    var doc = this;
+    var gcd = doc.gcd;
+
+    var filename = doc.colon.escape(args[0]);
+    if (args[1]) {
+        gcd.scope(filename, args[1]); 
+    }
+
+    gcd.once("file saved:" + filename, function (err, data) {
+        callback(err, data); 
+    }); 
+
+    gcd.emit("file ready:"+filename, text);
 });
 
 Folder.exit = function () {
@@ -482,27 +544,38 @@ Folder.fcd.on("read file", function (data, evObj) {
         fcd.emit("file read:" + emitname, [err, text]);
     });
 });
+Folder.fcd.on("read directory", function (fullname, evObj) {
+   var emitname = evObj.pieces[0];
+   var fcd = evObj.emitter;
+
+    
+
+    fs.readdir( fullname, function (err, text) {
+        console.log(err, text, fullname);
+        fcd.emit("directory read:" + emitname, [err, text]);
+    });
+});
 Folder.fcd.on("need standard input", function (data, evObj) {
     var fcd = evObj.emitter;
 
-    var stdin = process.stdin;
-    var ret = '';
+   	var stdin = process.stdin;
+  	var ret = '';
 
-    stdin.setEncoding('utf8');
+	stdin.setEncoding('utf8');
 
-    stdin.on('readable', function () {
-        var chunk;
+  stdin.on('readable', function () {
+    var chunk;
 
 
-        while ( (chunk = stdin.read()) ) {
-            ret += chunk;
-        }
+    while ( (chunk = stdin.read()) ) {
+	    ret += chunk;
+    }
 
-    });
+  });
 
-    stdin.on('end', function () {
-        fcd.emit("standard input read", [null, ret]);
-    });
+	stdin.on('end', function () {
+  	fcd.emit("standard input read", [null, ret]);
+  });
 
     stdin.on('error', function () {
         fcd.emit("standard input read", ["error", ret]);

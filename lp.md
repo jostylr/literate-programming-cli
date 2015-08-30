@@ -317,7 +317,7 @@ loop body and returns a function to be called on return.
 ## Actions    
 
 We have two basic actions, one for getting a requested document and one for
-saving one. 
+saving one.
 
     {"on" : [
         ["initial document", "read initial file"],
@@ -348,9 +348,7 @@ saving one.
                     if (err) {
                         _":mkdirp";
                     } else {
-                        folder.log("SAVED: " + 
-                             "./" + shortname );
-                        folder.checksum.data[shortname] = sha; 
+                        _":success saving"
                     }
                 });
             } else {
@@ -362,6 +360,14 @@ saving one.
         }] ]
     }
 
+[success saving]()
+
+
+    gcd.emit("file saved:" + emitname);  
+    folder.log("SAVED: " + 
+         "./" + shortname );
+    folder.checksum.data[shortname] = sha; 
+
 [mkdirp]()
 
 This makes the directory if it does not exist. 
@@ -369,13 +375,15 @@ This makes the directory if it does not exist.
     mkdirp(fpath, function (err) {
         if (err) {
             gcd.emit("error:directory not makeable", fpath);
+            gcd.emit("file not saved:" + emitname);
         } else {
             fs.writeFile(fullname, text, 
                 {encoding:encoding},  function (err) {
                     if (err) {
                         gcd.emit("error:file not saveable",fullname);
+                        gcd.emit("file not saved:" + emitname);
                     } else {
-                        console.log("File " + fullname + " saved");
+                        _":success saving"
                     }
                 });
         }
@@ -415,6 +423,7 @@ This makes the directory if it does not exist.
 This manages the folder communication dispatches. 
 
     Folder.fcd.on("read file", _":read file");
+    Folder.fcd.on("read directory", _":directory");
     Folder.fcd.on("need standard input", _":standard input");
     Folder.fcd.on("exec requested", _":execute command");
     Folder.fcd.on("dir exec requested", _":dir execute");
@@ -432,6 +441,21 @@ This manages the folder communication dispatches.
             fcd.emit("file read:" + emitname, [err, text]);
         });
     }
+    
+[directory]() 
+
+    function (fullname, evObj) {
+       var emitname = evObj.pieces[0];
+       var fcd = evObj.emitter;
+
+        
+
+        fs.readdir( fullname, function (err, text) {
+            console.log(err, text, fullname);
+            fcd.emit("directory read:" + emitname, [err, text]);
+        });
+    }
+
 
 [standard input]()
 
@@ -655,8 +679,15 @@ So here we define new commands that only make sense in command line context.
     Folder.async("exec", _"execute");
 
     Folder.async("execfresh", _"execute:fresh");
+    
+    Folder.async("readfile", _"cmd readfile");
+
+    Folder.async("readdir", _"cmd directory");
+
+    Folder.async("savefile", _"cmd savefile");
 
 * execute Executes a command line with the input being the std input?
+* readfile, listdir
 
 ### execute
 
@@ -720,16 +751,89 @@ This does not cache the command.
         }
     }
 
+### Cmd Readfile
+
+Since I can't decide if it should be input or arg1, if there is an arg1, then
+that becomes the filename. Otherwise the input is the filename. arg2 is the
+extension if present. 
+
+    function (input, args, callback) {
+        var doc = this;
+        var colon = doc.colon;
+        var folder = doc.parent;
+        var filename = args[0] || input;
+        var fullname = folder.src + sep + filename; 
+        var encoding = args[1] || folder.encoding || "utf8";
+        var emitname =  colon.escape(fullname);
+
+
+        doc.parent.Folder.fcd.cache(
+            ["read file:" + emitname, [fullname, encoding]],
+            "file read:" + emitname,
+            function (data) {
+                var err = data[0];
+                var text = data[1];
+                callback(err, text);
+            }
+        );
+    }
+
+### Cmd Directory
+
+This reads and returns a file listing for a directory. Just like the files, it
+is relative to the src directory. The directory listing is cached; we assume
+it is not changing during program execution. Due to the unordered nature of
+this, we need to be okay with snapshots at any point. 
+
+
+    function (input, args, callback) {
+        var doc = this;
+        var colon = doc.colon;
+        var folder = doc.parent;
+        var dirname = args[0] || input;
+        var fullname = folder.src + sep + dirname; 
+        var emitname =  colon.escape(fullname);
+
+        doc.parent.Folder.fcd.cache(
+            ["read directory:" + emitname, fullname],
+            "directory read:" + emitname,
+            function (data) {
+                var err = data[0];
+                var text = data[1];
+                callback(err, text);
+            }
+        );
+    }
+
+### Cmd savefile
+
+    function (text, args, callback) {
+        var doc = this;
+        var gcd = doc.gcd;
+
+        var filename = doc.colon.escape(args[0]);
+        if (args[1]) {
+            gcd.scope(filename, args[1]); 
+        }
+
+        gcd.once("file saved:" + filename, function (err, data) {
+            callback(err, data); 
+        }); 
+
+        gcd.emit("file ready:"+filename, text);
+    }
 
 
 ## new directives
 
 * execute which takes in a string as the title and executes, returning the
-  output stored in the variable named in the link thext. 
+  output stored in the variable named in the link text. 
 * readfile Read a file and store it. 
+
+Desired: 
 * download  Download something and store. Uses the cache
 * downsave  Download and then save in a file. Uses the cache. Uses streams to
-  do this quickly and efficiently. Think images. 
+  do this quickly and efficiently. Think images.  
 
 ```
 Folder.directives.exec = _"dir execute";
@@ -853,7 +957,7 @@ This is the directive for reading a file and storing its text.
         var name = colon.escape(args.link);
         var filename = args.href; 
         var fullname =  folder.src + sep + filename;
-        var emitname = colon.escape(filename);
+        var emitname = colon.escape(fullname);
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
         var pipes = args.input.slice(cut+1);
@@ -1104,7 +1208,8 @@ use other directory names for those.
         ["badfiles", "", _":bad files"],
         ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
         ["lprc", ""],
-        ["stringbuild", ""]
+        ["stringbuild", ""],
+        ["cmdread", ""]
         ].slice(0)
     );
 

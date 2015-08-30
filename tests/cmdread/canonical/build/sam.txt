@@ -1,0 +1,4 @@
+afile.txt
+another.md
+
+Short and sweet
