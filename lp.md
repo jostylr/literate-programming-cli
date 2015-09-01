@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.10.0; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.11.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -799,8 +799,9 @@ this, we need to be okay with snapshots at any point.
             "directory read:" + emitname,
             function (data) {
                 var err = data[0];
-                var text = data[1];
-                callback(err, text);
+                var files = data[1];
+                doc.augment(files, "arr");
+                callback(err, files);
             }
         );
     }
@@ -849,11 +850,11 @@ This is the directive for executing a command on the command line and storing
 it in a variable. There is no piping to standard in. Think ls. 
 
 Not really sure how useful this is. Thought it could be useful for things like
-texing a document, but need a way to have directories more accessibe. It might
+texing a document, but need a way to have directories more accessible. It might
 be that one just does custom executions. But perhaps this serves as a useful
 example. 
     
-Piping of the standard output internally can be done by use the separator
+Piping of the standard output internally can be done by using the separator
 `!*!`. If you happen to need that, you can overwrite Folder.execseparator.
 
 
@@ -1319,6 +1320,27 @@ The various flags are
   options. The format is key:value. So `-z cache:cool` would set the value
   cache to cool.
 
+ ## New Commands
+
+* `exec cmd1, cmd2, ...` This executes the commands on the commandline. The
+  standard input is the incoming input and the standard output is what is
+  passed along. 
+* `execfresh` Same as exec but no caching
+* `readfile name` Reads in file with filename. Starts at source directory.
+  This terminates old input and replaces with file contents.
+* `readdir name` Generates a list of files in named directory. This generates
+  an augmented array. 
+* `savefile name, encoding` Saves the input into the named file using the
+  encoding if specified. 
+
+## New Directives
+
+* `[name](# "exec:command line command")` Executes command line as a
+  directive. Not sure on usefulness.
+* `[var name](url "readfile:encoding|commands")` Reads a file, pipes it in,
+  stores it in var name.  
+* Save. Not new, but works to actually save the file on disk. 
+
  
 
  ## LICENSE
@@ -1466,7 +1488,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 1.7.1, mkdirp 0.5.1, 
+        literate-programming-lib 1.8.0, mkdirp 0.5.1, 
         nomnom 1.8.1;
     dev: litpro-jshint 0.2.1, literate-programming-cli-test 0.5.1")
 

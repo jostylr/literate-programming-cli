@@ -50,6 +50,26 @@ The various flags are
   Since plugins are loaded after initial parsing, this allows one to sneak in
   options. The format is key:value. So `-z cache:cool` would set the value
   cache to cool.
+## New Commands
+
+* `exec cmd1, cmd2, ...` This executes the commands on the commandline. The
+  standard input is the incoming input and the standard output is what is
+  passed along. 
+* `execfresh` Same as exec but no caching
+* `readfile name` Reads in file with filename. Starts at source directory.
+  This terminates old input and replaces with file contents.
+* `readdir name` Generates a list of files in named directory. This generates
+  an augmented array. 
+* `savefile name, encoding` Saves the input into the named file using the
+  encoding if specified. 
+
+## New Directives
+
+* `[name](# "exec:command line command")` Executes command line as a
+  directive. Not sure on usefulness.
+* `[var name](url "readfile:encoding|commands")` Reads a file, pipes it in,
+  stores it in var name.  
+* Save. Not new, but works to actually save the file on disk. 
 
  
 ## LICENSE

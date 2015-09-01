@@ -298,8 +298,9 @@ Folder.async("readdir", function (input, args, callback) {
         "directory read:" + emitname,
         function (data) {
             var err = data[0];
-            var text = data[1];
-            callback(err, text);
+            var files = data[1];
+            doc.augment(files, "arr");
+            callback(err, files);
         }
     );
 });
@@ -690,7 +691,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.10.0";
+                return "v.0.11.0";
             }
         }
     
