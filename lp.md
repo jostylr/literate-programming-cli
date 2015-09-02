@@ -64,6 +64,9 @@ files.
     var Folder = mod.Folder;
 
     Folder.prototype.encoding = args.encoding;
+    Folder.prototype.displayScopes = (args.scopes ? _"display scopes" :
+        function () {} );
+
 
     Folder.lprc(args.lprc, args);
 
@@ -199,8 +202,10 @@ event.
                 folder.checksum.finalSave();
 
                 //console.log(folder, folder.gcd);
-                
-                //console.log(folder.scopes);
+              
+
+                folder.displayScopes();
+
                 //console.log(gcd.log.logs().join('\n')); 
             }
         };
@@ -465,24 +470,24 @@ Code largely taken from [sindresorhus](https://github.com/sindresorhus/get-stdin
     function (data, evObj) {
         var fcd = evObj.emitter;
 
-       	var stdin = process.stdin;
-      	var ret = '';
+        var stdin = process.stdin;
+        var ret = '';
 
-    	stdin.setEncoding('utf8');
+        stdin.setEncoding('utf8');
 
-	    stdin.on('readable', function () {
-		    var chunk;
+        stdin.on('readable', function () {
+            var chunk;
 
 
-		    while ( (chunk = stdin.read()) ) {
-			    ret += chunk;
-		    }
+            while ( (chunk = stdin.read()) ) {
+                ret += chunk;
+            }
 
-	    });
+        });
 
-    	stdin.on('end', function () {
-	    	fcd.emit("standard input read", [null, ret]);
-	    });
+        stdin.on('end', function () {
+            fcd.emit("standard input read", [null, ret]);
+        });
 
         stdin.on('error', function () {
             fcd.emit("standard input read", ["error", ret]);
@@ -618,6 +623,10 @@ to overwrite whatever they like in it though ideally they play nice.
             callback : function () {
                 return "v._`g::docversion`";
             }
+        },
+        scopes: {
+           flag : true,
+           help : "Show all the values for the document. May help in debugging."
         }
 
 
@@ -647,6 +656,27 @@ This sets up the default directories.
         help: "Where to load inernally requested litpro documents from"
     }
     
+### Display scopes
+
+This is a function that displays the scopes. 
+
+    function () {
+        var folder = this;
+        var str = '';
+        Object.keys(folder.scopes).forEach(function (el) {
+            str += el+ "::\n------\n";
+            var scope = folder.scopes[el];
+            Object.keys(scope).sort().forEach(
+                function (v) {
+                    str+= v + ": '" + scope[v] + "'\n* * *\n";
+                });
+            str += "\n------\n";
+        });
+        str = str.replace(/\n\n/g, "\n");
+        console.log(str);
+    }
+
+May want to consider using https://www.npmjs.com/package/js-object-pretty-print
 
 ## LPRC
 
@@ -1210,7 +1240,8 @@ use other directory names for those.
         ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
         ["lprc", ""],
         ["stringbuild", ""],
-        ["cmdread", ""]
+        ["cmdread", ""],
+        ["scopes", " --scopes"],
         ].slice(0)
     );
 
@@ -1319,6 +1350,8 @@ The various flags are
   Since plugins are loaded after initial parsing, this allows one to sneak in
   options. The format is key:value. So `-z cache:cool` would set the value
   cache to cool.
+* --scopes This shows at the end of the run all the variables and values that
+  the document thinks is there. Might be useful for debugging purposes. 
 
  ## New Commands
 

@@ -50,6 +50,8 @@ The various flags are
   Since plugins are loaded after initial parsing, this allows one to sneak in
   options. The format is key:value. So `-z cache:cool` would set the value
   cache to cool.
+* --scopes This shows at the end of the run all the variables and values that
+  the document thinks is there. Might be useful for debugging purposes. 
 ## New Commands
 
 * `exec cmd1, cmd2, ...` This executes the commands on the commandline. The

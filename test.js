@@ -26,6 +26,7 @@ tests.apply(null, [
     ["flag", "-b dev; node ../../litpro.js -b deploy -f eyes"], 
     ["lprc", ""],
     ["stringbuild", ""],
-    ["cmdread", ""]
+    ["cmdread", ""],
+    ["scopes", " --scopes"],
     ].slice(0)
 );

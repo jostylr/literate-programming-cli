@@ -344,8 +344,10 @@ Folder.exit = function () {
             folder.checksum.finalSave();
 
             //console.log(folder, folder.gcd);
-            
-            //console.log(folder.scopes);
+          
+
+            folder.displayScopes();
+
             //console.log(gcd.log.logs().join('\n')); 
         }
     };
@@ -559,24 +561,24 @@ Folder.fcd.on("read directory", function (fullname, evObj) {
 Folder.fcd.on("need standard input", function (data, evObj) {
     var fcd = evObj.emitter;
 
-   	var stdin = process.stdin;
-  	var ret = '';
+    var stdin = process.stdin;
+    var ret = '';
 
-	stdin.setEncoding('utf8');
+    stdin.setEncoding('utf8');
 
-  stdin.on('readable', function () {
-    var chunk;
+    stdin.on('readable', function () {
+        var chunk;
 
 
-    while ( (chunk = stdin.read()) ) {
-	    ret += chunk;
-    }
+        while ( (chunk = stdin.read()) ) {
+            ret += chunk;
+        }
 
-  });
+    });
 
-	stdin.on('end', function () {
-  	fcd.emit("standard input read", [null, ret]);
-  });
+    stdin.on('end', function () {
+        fcd.emit("standard input read", [null, ret]);
+    });
 
     stdin.on('error', function () {
         fcd.emit("standard input read", ["error", ret]);
@@ -693,6 +695,10 @@ var opts = require("nomnom").
             callback : function () {
                 return "v.0.11.0";
             }
+        },
+        scopes: {
+           flag : true,
+           help : "Show all the values for the document. May help in debugging."
         }
     
     
