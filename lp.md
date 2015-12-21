@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.11.1; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.11.2; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -340,12 +340,13 @@ saving one.
             var colon = folder.colon;
             var emitname = evObj.pieces[0];
             var filename = colon.restore(emitname);
-            var firstpart = filename.split(sep).slice(0, -1).join(sep);
             var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
             var fpath = folder.build;
-            var fullname = fpath + sep + filename;
+            var p = path.parse(fpath + sep + filename);
+            var fullname = p.dir + sep + p.base;
             var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
-            fpath = fpath + (firstpart ? sep + firstpart : "");
+            fpath = p.dir;
+
             var sha;
             if ( (sha = folder.checksum.tosave(shortname, text) ) ) {
                 fs.writeFile(fullname, text, 
@@ -1142,10 +1143,10 @@ This simply logs the file.
         var colon = folder.colon;
         var emitname = evObj.pieces[0];
         var filename = colon.restore(emitname);
-        var firstpart = filename.split(sep).slice(0, -1).join(sep);
         var fpath = folder.build;
-        var fullname = fpath + sep + filename; 
-        fpath = fpath + (firstpart ? sep + firstpart : "");
+        var p = path.parse(fpath + sep + filename);
+        var fullname = p.dir + sep + p.base;
+        fpath = p.dir;
         
         folder.log("FILE: " + fullname + ":\n\n" + text +
                     "\n----\n");
@@ -1171,12 +1172,14 @@ First we need to install it.
         var colon = folder.colon;
         var emitname = evObj.pieces[0];
         var filename = colon.restore(emitname);
-        var firstpart = filename.split(sep).slice(0, -1).join(sep);
         var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+        
         var fpath = folder.build;
-        var fullname = fpath + sep + filename; 
+        var p = path.parse(fpath + sep + filename);
+        var fullname = p.dir + sep + p.base;
         var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
-        fpath = fpath + (firstpart ? sep + firstpart : "");
+        fpath = p.dir;
+
         if (folder.checksum.tosave(shortname, text) ) {
             if (folder.checksum.data.hasOwnProperty(shortname) ) {
                 _":diff it"
@@ -1521,7 +1524,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 1.8.1, mkdirp 0.5.1, 
+        literate-programming-lib 1.8.2, mkdirp 0.5.1, 
         nomnom 1.8.1;
     dev: litpro-jshint 0.2.1, literate-programming-cli-test 0.5.1")
 

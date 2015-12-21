@@ -52,12 +52,13 @@ Folder.actions = {"on" : [
         var colon = folder.colon;
         var emitname = evObj.pieces[0];
         var filename = colon.restore(emitname);
-        var firstpart = filename.split(sep).slice(0, -1).join(sep);
         var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
         var fpath = folder.build;
-        var fullname = fpath + sep + filename;
+        var p = path.parse(fpath + sep + filename);
+        var fullname = p.dir + sep + p.base;
         var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
-        fpath = fpath + (firstpart ? sep + firstpart : "");
+        fpath = p.dir;
+
         var sha;
         if ( (sha = folder.checksum.tosave(shortname, text) ) ) {
             fs.writeFile(fullname, text, 
@@ -368,12 +369,14 @@ Folder.process = function (args) {
         var colon = folder.colon;
         var emitname = evObj.pieces[0];
         var filename = colon.restore(emitname);
-        var firstpart = filename.split(sep).slice(0, -1).join(sep);
         var encoding = gcd.scope(emitname) || folder.encoding || "utf8" ;
+        
         var fpath = folder.build;
-        var fullname = fpath + sep + filename; 
+        var p = path.parse(fpath + sep + filename);
+        var fullname = p.dir + sep + p.base;
         var shortname = fullname.replace(root, "").replace(/^\.\//, '' );
-        fpath = fpath + (firstpart ? sep + firstpart : "");
+        fpath = p.dir;
+    
         if (folder.checksum.tosave(shortname, text) ) {
             if (folder.checksum.data.hasOwnProperty(shortname) ) {
                 fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
@@ -411,10 +414,10 @@ Folder.process = function (args) {
         var colon = folder.colon;
         var emitname = evObj.pieces[0];
         var filename = colon.restore(emitname);
-        var firstpart = filename.split(sep).slice(0, -1).join(sep);
         var fpath = folder.build;
-        var fullname = fpath + sep + filename; 
-        fpath = fpath + (firstpart ? sep + firstpart : "");
+        var p = path.parse(fpath + sep + filename);
+        var fullname = p.dir + sep + p.base;
+        fpath = p.dir;
         
         folder.log("FILE: " + fullname + ":\n\n" + text +
                     "\n----\n");
@@ -693,7 +696,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.11.1";
+                return "v.0.11.2";
             }
         },
         scopes: {
