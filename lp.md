@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:0.12.0; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:0.12.1; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -359,6 +359,7 @@ saving one.
                 });
             } else {
                 folder.log("UNCHANGED " + "./" + shortname);
+                gcd.emit("file saved:" + emitname);  
             }
         }],
         ["report error", function (data, evObj) {
@@ -457,7 +458,6 @@ This manages the folder communication dispatches.
         
 
         fs.readdir( fullname, function (err, text) {
-            console.log(err, text, fullname);
             fcd.emit("directory read:" + emitname, [err, text]);
         });
     }

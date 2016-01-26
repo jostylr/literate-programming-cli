@@ -92,6 +92,7 @@ Folder.actions = {"on" : [
             });
         } else {
             folder.log("UNCHANGED " + "./" + shortname);
+            gcd.emit("file saved:" + emitname);  
         }
     }],
     ["report error", function (data, evObj) {
@@ -557,7 +558,6 @@ Folder.fcd.on("read directory", function (fullname, evObj) {
     
 
     fs.readdir( fullname, function (err, text) {
-        console.log(err, text, fullname);
         fcd.emit("directory read:" + emitname, [err, text]);
     });
 });
@@ -696,7 +696,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.0.12.0";
+                return "v.0.12.1";
             }
         },
         scopes: {
