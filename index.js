@@ -696,7 +696,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.1.0.0";
+                return "v.1.0.1";
             }
         },
         scopes: {
