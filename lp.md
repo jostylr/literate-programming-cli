@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:1.0.1; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:1.0.2; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -62,6 +62,8 @@ files.
     //console.warn("!!", args);
 
     var Folder = mod.Folder;
+    
+    Folder.inputs = args;
 
     Folder.prototype.encoding = args.encoding;
     Folder.prototype.displayScopes = (args.scopes ? _"display scopes" :
@@ -571,7 +573,7 @@ defaults:
 ## CLI Options
 
 Here are the options for the nomnom parser. These get loaded first and then the
-plugins can act on the parsr as a second argument. The plugins should be able
+plugins can act on the parser as a second argument. The plugins should be able
 to overwrite whatever they like in it though ideally they play nice. 
 
     {
@@ -1245,7 +1247,8 @@ use other directory names for those.
         ["stringbuild", ""],
         ["cmdread", ""],
         ["scopes", " --scopes"],
-        ].slice(0)
+        ["args", "-z cache:cool"]
+        ].slice()
     );
 
 
@@ -1292,8 +1295,6 @@ there.
         }),
         "build/.checksum" : tests.json
     }
-
-
 
 [off](# "block:")
 

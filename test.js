@@ -28,5 +28,6 @@ tests.apply(null, [
     ["stringbuild", ""],
     ["cmdread", ""],
     ["scopes", " --scopes"],
-    ].slice(0)
+    ["args", "-z cache:cool"]
+    ].slice()
 );
