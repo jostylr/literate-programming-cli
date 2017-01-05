@@ -1305,14 +1305,14 @@ there.
 This is the command line client module for literate-programming. The intent of
 this one is to build the command line clients using this module as a baseline. 
 
-To use the thin client, see [litpro]()
+To use the thin client, see [litpro](https://github.com/jostylr/litpro)  For a
+more full client geared to web development, please see
+[literate-programming](https://github.com/jostylr/literate-programming)
 
 Install using `npm install literate-programming-cli`
 
 Usage is `./node_modules/bin/litpro file` and it has some command flags. 
 
-If you want a global install so that you just need to write `litpro` then use
-`npm install -g literate-programming-cli`. 
 
  ## Flags
 
