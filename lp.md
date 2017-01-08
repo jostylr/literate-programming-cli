@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:1.0.2; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:1.0.3; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -57,6 +57,7 @@ files.
 
     _":build stripping"
 
+    var z = {};
     _":arg z"
 
     //console.warn("!!", args);
@@ -64,6 +65,9 @@ files.
     var Folder = mod.Folder;
     
     Folder.inputs = args;
+    Folder.z = z;
+
+    //plugin-to-folder
 
     Folder.prototype.encoding = args.encoding;
     Folder.prototype.displayScopes = (args.scopes ? _"display scopes" :
@@ -88,7 +92,6 @@ The goal is to remove a trailing slash from the file names.
         }
     });
 
-
 [arg z]()
 
 This is the other option parsing. So we will reiterate over it. We split on
@@ -98,6 +101,9 @@ To pass in multiple values, use more colons.
 Example  `-z papers:dude:great:whatever` will translate into creating
 `args.papers = ['dude', 'great', 'whatever']`
 
+We add in the global Folder.z variable to encapsulate all the variable names,
+but we also make those variables available to the args command. 
+
     args.other.forEach(function (arg) {
         var pair = arg.split(":");
         if (pair.length === 1) {
@@ -105,11 +111,12 @@ Example  `-z papers:dude:great:whatever` will translate into creating
         } else if (pair.length === 2) {
             args[pair[0]] = pair[1]; 
         } else {
-            args[pair[0]] = pair.slice(0);
+            args[pair[0]] = pair.slice(1);
         }
+        z[pair[0]] = args[pair[0]];
     });
 
- 
+
 ## Module
 
 This exports what is needed for the command client to use. 
@@ -719,6 +726,8 @@ So here we define new commands that only make sense in command line context.
 
     Folder.async("savefile", _"cmd savefile");
 
+    _"z"
+
 * execute Executes a command line with the input being the std input?
 * readfile, listdir
 
@@ -856,6 +865,37 @@ this, we need to be okay with snapshots at any point.
 
         gcd.emit("file ready:"+filename, text);
     }
+
+
+## z
+
+This retrieves the z-argument from the command line with the given name. 
+
+    Folder.sync("z", _":fun");
+
+We could create another function that would allow for more creative
+constructions, such as `z? {}, msg, dude` which could construct an object with
+key values msg and dude whose values are the flag values. At the current time,
+I do not see the need. 
+
+[fun]()
+
+    function (input, args) {
+        var z = this.Folder.z; 
+        if (z.hasOwnProperty(args[0])) {
+            return z[args[0]];
+        } else {
+            return input;
+        }
+    }
+
+##### cdoc
+
+    * **z** `z msg` will return the value in `msg` from the command line flag
+      `-z msg:value`. If the value contains multiple colons, it is interpreted
+      as an array and an array will be returned. 
+
+
 
 
 ## new directives
@@ -1247,7 +1287,8 @@ use other directory names for those.
         ["stringbuild", ""],
         ["cmdread", ""],
         ["scopes", " --scopes"],
-        ["args", "-z cache:cool"]
+        ["args", "-z cache:cool"],
+        ["z", ' -z "msg:Awesome work" -z arr:25:27:29 ']
         ].slice()
     );
 

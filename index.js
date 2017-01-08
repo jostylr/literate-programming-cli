@@ -323,6 +323,15 @@ Folder.async("savefile", function (text, args, callback) {
     gcd.emit("file ready:"+filename, text);
 });
 
+Folder.sync("z", function (input, args) {
+    var z = this.Folder.z; 
+    if (z.hasOwnProperty(args[0])) {
+        return z[args[0]];
+    } else {
+        return input;
+    }
+});
+
 Folder.exit = function () {
     var Folder  = this; 
 
@@ -696,7 +705,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.1.0.2";
+                return "v.1.0.3";
             }
         },
         scopes: {
