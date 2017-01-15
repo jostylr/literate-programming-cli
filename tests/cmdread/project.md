@@ -11,5 +11,7 @@ from a command.
         | savefile sample2.txt
         | pop"
 
+    _"|readfile ../some.txt"
+
 [sam.txt](# "save:")
 

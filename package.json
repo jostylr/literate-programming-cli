@@ -1,7 +1,7 @@
 {
   "name": "literate-programming-cli",
   "description": "Basic command line for literate-programming",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "homepage": "https://github.com/jostylr/literate-programming-cli",
   "author": {
     "name": "James Taylor",
@@ -23,7 +23,7 @@
     "checksum" : "^0.1.1",
     "colors" : "^1.1.2",
     "diff" : "^1.4.0",
-    "literate-programming-lib" : "^1.12.1",
+    "literate-programming-lib" : "^1.13.0",
     "mkdirp" : "^0.5.1",
     "nomnom" : "^1.8.1"
   },

@@ -2,7 +2,7 @@
 
     Some great stuff
 
-    _":boss | if eyes, sub, boss is crap, boss is great "
+    _":boss | if ?flag(eyes), sub, boss is crap, boss is great "
 
 
 [boss.txt](# "save:")
