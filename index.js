@@ -123,7 +123,7 @@ Folder.directives.exec = function (args) {
     };
     
     var start = doc.getBlock(args.href, args.cur);
-    console.log(pipes, emitname, start, command);
+    //console.log(pipes, emitname, start, command);
     
     doc.pipeDirSetup( pipes, emitname, f, start);  
 
@@ -169,7 +169,7 @@ Folder.directives.execfresh = function (args) {
     };
     
     var start = doc.getBlock(args.href, args.cur);
-    console.log(pipes, emitname, start, command);
+    //console.log(pipes, emitname, start, command);
     
     doc.pipeDirSetup( pipes, emitname, f, start);  
 
@@ -705,7 +705,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.1.1.1";
+                return "v.1.1.2";
             }
         },
         scopes: {
