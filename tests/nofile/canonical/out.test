@@ -1,2 +1,7 @@
-SAVED: ./build/save.txt
-DONE: ./build
+FOLDER LOGS: 
+===
+## SAVED
+./build/save.txt
+***
+## DONE
+./build

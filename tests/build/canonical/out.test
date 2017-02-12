@@ -1,4 +1,14 @@
-SAVED: ./seen/out.txt
-DONE: ./seen
-UNCHANGED ./seen/out.txt
-DONE: ./seen
+FOLDER LOGS: 
+===
+## SAVED
+./seen/out.txt
+***
+## DONE
+./seen
+FOLDER LOGS: 
+===
+## UNCHANGED
+./seen/out.txt
+***
+## DONE
+./seen

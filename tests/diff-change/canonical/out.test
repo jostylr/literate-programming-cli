@@ -1,5 +1,13 @@
-SAVED: ./build/change.txt
-DONE: ./build
+FOLDER LOGS: 
+===
+## SAVED
+./build/change.txt
+***
+## DONE
+./build
+FOLDER LOGS: 
+===
+## DIFF DETECTED
 Index: build/change.txt
 ===================================================================
 --- build/change.txt	old
@@ -13,4 +21,6 @@ Index: build/change.txt
 -
 -Yep.
 
-DONE: ./build
+***
+## DONE
+./build

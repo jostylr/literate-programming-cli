@@ -76,8 +76,7 @@ Folder.actions = {"on" : [
                                         gcd.emit("file not saved:" + emitname);
                                     } else {
                                         gcd.emit("file saved:" + emitname);  
-                                        folder.log("SAVED: " + 
-                                             "./" + shortname );
+                                        folder.log("./" + shortname, "saved" );
                                         folder.checksum.data[shortname] = sha; 
                                     }
                                 });
@@ -85,13 +84,12 @@ Folder.actions = {"on" : [
                     });
                 } else {
                     gcd.emit("file saved:" + emitname);  
-                    folder.log("SAVED: " + 
-                         "./" + shortname );
+                    folder.log("./" + shortname, "saved" );
                     folder.checksum.data[shortname] = sha; 
                 }
             });
         } else {
-            folder.log("UNCHANGED " + "./" + shortname);
+            folder.log("./" + shortname, "unchanged" );
             gcd.emit("file saved:" + emitname);  
         }
     }],
@@ -193,7 +191,8 @@ Folder.directives.readfile = function (args) {
     var colon = doc.colon;
     var name = colon.escape(args.link);
     var filename = args.href; 
-    var fullname =  folder.src + sep + filename;
+    var fullname =  folder.src + sep + 
+         (args.loadprefix || '') + filename;
     var emitname = colon.escape(fullname);
     var cut = args.input.indexOf("|");
     var encoding = args.input.slice(0,cut);
@@ -332,6 +331,32 @@ Folder.sync("z", function (input, args) {
     }
 });
 
+var oneArgOnly = function (list) {
+    var ret = '';
+    ret += list.map(
+        function (args) {
+            return args.shift();
+        }).
+        join("\n");
+    return ret;
+} ;
+["saved", "unchanged", "diff unchanged", "diff detected"].
+    forEach(function (el) {
+        Folder.prototype.formatters[el] = oneArgOnly;
+    });
+Folder.prototype.formatters["diff new file"] = function (list) {
+    var ret = '';
+    ret += list.map(
+        function (args) {
+            var fname = args.shift();
+            var text = args.shift();
+            return "### " + fname + "\n`````\n" + 
+                text + "\n`````";
+        }).
+        join("\n***\n");
+    return ret;
+} ;
+
 Folder.exit = function () {
     var Folder  = this; 
 
@@ -344,11 +369,12 @@ Folder.exit = function () {
             folder = folders[build];
             arr = folder.reportwaits();
             arr.push.apply(arr, folder.simpleReport());
+            console.log(folder.reportOut());
             if ( arr.length) {
-                console.log( "STILL WAITING: ./" + path.relative(root, build) +
+                console.log( "****\n## STILL WAITING\n./" + path.relative(root, build) +
                     "\n---\n" + arr.join("\n") + "\n\n");
             } else {
-                console.log( "DONE: ./" + path.relative(root, build));
+                console.log( "***\n## DONE\n./" + path.relative(root, build));
             }
 
 
@@ -392,7 +418,7 @@ Folder.process = function (args) {
                 fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
                     var result, ret; 
                     if (err) {
-                        folder.log("Could not read old file" + shortname + 
+                        folder.warn("diff", "Could not read old file" + shortname + 
                             " despite it being in the checksum file." );
                     } else {
                         ret = '';
@@ -406,15 +432,15 @@ Folder.process = function (args) {
                         });
                         //folder.log("Diff on " + shortname +":\n\n" + ret+ "\n----\n" );
                         
-                        folder.log(diff.createPatch(shortname, oldtext, text, "old", "new"));
+                        folder.log(diff.createPatch(shortname, oldtext, text, "old", "new"),
+                            "diff detected");
                     }
                 });
             } else {
-                folder.log("New file " + shortname + ":\n\n" + text +
-                    "\n----\n");
+                folder.log(shortname, "diff new file", text); 
             }
         } else {
-            folder.log("File " + shortname + " unchanged.");
+            folder.log(shortname , "diff unchanged");
         }
     };
 
@@ -705,7 +731,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.1.1.2";
+                return "v.1.2.0";
             }
         },
         scopes: {

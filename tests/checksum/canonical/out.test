@@ -1,2 +1,7 @@
-UNCHANGED ./out.txt
-DONE: ./
+FOLDER LOGS: 
+===
+## UNCHANGED
+./out.txt
+***
+## DONE
+./

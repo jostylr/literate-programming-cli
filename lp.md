@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:1.1.2; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:1.2.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -169,6 +169,8 @@ something. For example, we could enable logging with the gcd.
     _"new directives"
 
     _"new commands"
+
+    _"formatters"
     
     Folder.exit = _":exit";
 
@@ -195,16 +197,17 @@ event.
             var build, folder, arr;
             var folders = Folder.folders; 
                 
-    
+
             for ( build in folders) {
                 folder = folders[build];
                 arr = folder.reportwaits();
                 arr.push.apply(arr, folder.simpleReport());
+                console.log(folder.reportOut());
                 if ( arr.length) {
-                    console.log( "STILL WAITING: ./" + path.relative(root, build) +
+                    console.log( "****\n## STILL WAITING\n./" + path.relative(root, build) +
                         "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log( "DONE: ./" + path.relative(root, build));
+                    console.log( "***\n## DONE\n./" + path.relative(root, build));
                 }
 
 
@@ -367,7 +370,7 @@ saving one.
                     }
                 });
             } else {
-                folder.log("UNCHANGED " + "./" + shortname);
+                folder.log("./" + shortname, "unchanged" );
                 gcd.emit("file saved:" + emitname);  
             }
         }],
@@ -380,8 +383,7 @@ saving one.
 
 
     gcd.emit("file saved:" + emitname);  
-    folder.log("SAVED: " + 
-         "./" + shortname );
+    folder.log("./" + shortname, "saved" );
     folder.checksum.data[shortname] = sha; 
 
 [mkdirp]()
@@ -1030,7 +1032,8 @@ This is the directive for reading a file and storing its text.
         var colon = doc.colon;
         var name = colon.escape(args.link);
         var filename = args.href; 
-        var fullname =  folder.src + sep + filename;
+        var fullname =  folder.src + sep + 
+             (args.loadprefix || '') + filename;
         var emitname = colon.escape(fullname);
         var cut = args.input.indexOf("|");
         var encoding = args.input.slice(0,cut);
@@ -1226,11 +1229,10 @@ First we need to install it.
             if (folder.checksum.data.hasOwnProperty(shortname) ) {
                 _":diff it"
             } else {
-                folder.log("New file " + shortname + ":\n\n" + text +
-                    "\n----\n");
+                folder.log(shortname, "diff new file", text); 
             }
         } else {
-            folder.log("File " + shortname + " unchanged.");
+            folder.log(shortname , "diff unchanged");
         }
     }
 
@@ -1239,7 +1241,7 @@ First we need to install it.
     fs.readFile(fullname, {encoding:encoding}, function (err, oldtext) {
         var result, ret; 
         if (err) {
-            folder.log("Could not read old file" + shortname + 
+            folder.warn("diff", "Could not read old file" + shortname + 
                 " despite it being in the checksum file." );
         } else {
             ret = '';
@@ -1253,9 +1255,53 @@ First we need to install it.
             });
             //folder.log("Diff on " + shortname +":\n\n" + ret+ "\n----\n" );
             
-            folder.log(diff.createPatch(shortname, oldtext, text, "old", "new"));
+            folder.log(diff.createPatch(shortname, oldtext, text, "old", "new"),
+                "diff detected");
         }
     });
+
+## Formatters
+
+This is some custom formatters for the command line client
+
+    var oneArgOnly = _":one arg";
+    ["saved", "unchanged", "diff unchanged", "diff detected"].
+        forEach(function (el) {
+            Folder.prototype.formatters[el] = oneArgOnly;
+        });
+    Folder.prototype.formatters["diff new file"] = _":new file";
+    
+
+[one arg]()
+
+This just lists the files that were saved. 
+
+    function (list) {
+        var ret = '';
+        ret += list.map(
+            function (args) {
+                return args.shift();
+            }).
+            join("\n");
+        return ret;
+    } 
+
+[new file]()
+
+This has a filename and the text file. 
+
+    function (list) {
+        var ret = '';
+        ret += list.map(
+            function (args) {
+                var fname = args.shift();
+                var text = args.shift();
+                return "### " + fname + "\n`````\n" + 
+                    text + "\n`````";
+            }).
+            join("\n***\n");
+        return ret;
+    } 
 
 ## Test this
 
@@ -1289,7 +1335,7 @@ use other directory names for those.
         ["scopes", " --scopes"],
         ["args", "-z cache:cool"],
         ["z", ' -z "msg:Awesome work" -z arr:25:27:29 ']
-        ].slice()
+        ].slice(0,18)
     );
 
 
@@ -1320,6 +1366,7 @@ This should handle the matching of the target given the different strings.
 
     { "out.test" : function (canonical, build) {
             build = build.toString().replace(": no such file or directory, ", ", ");
+            canonical = canonical.toString().replace(": no such file or directory, ", ", ");
             return build.trim() === canonical.toString().trim();
         }
     }
@@ -1565,7 +1612,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 1.13.2, mkdirp 0.5.1, 
+        literate-programming-lib 1.14.1, mkdirp 0.5.1, 
         nomnom 1.8.1;
     dev: litpro-jshint 0.3.1, literate-programming-cli-test 0.5.1")
 

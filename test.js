@@ -15,6 +15,7 @@ tests.apply(null, [
     ["nofile", ""],
     ["nofilenoproject", "", { "out.test" : function (canonical, build) {
             build = build.toString().replace(": no such file or directory, ", ", ");
+            canonical = canonical.toString().replace(": no such file or directory, ", ", ");
             return build.trim() === canonical.toString().trim();
         }
     }],
@@ -30,5 +31,5 @@ tests.apply(null, [
     ["scopes", " --scopes"],
     ["args", "-z cache:cool"],
     ["z", ' -z "msg:Awesome work" -z arr:25:27:29 ']
-    ].slice()
+    ].slice(0,18)
 );
