@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:1.2.0; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:1.2.1; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -1335,7 +1335,7 @@ use other directory names for those.
         ["scopes", " --scopes"],
         ["args", "-z cache:cool"],
         ["z", ' -z "msg:Awesome work" -z arr:25:27:29 ']
-        ].slice(0,18)
+        ].slice()
     );
 
 

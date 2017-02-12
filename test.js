@@ -31,5 +31,5 @@ tests.apply(null, [
     ["scopes", " --scopes"],
     ["args", "-z cache:cool"],
     ["z", ' -z "msg:Awesome work" -z arr:25:27:29 ']
-    ].slice(0,18)
+    ].slice()
 );
