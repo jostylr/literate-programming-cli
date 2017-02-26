@@ -1,14 +1,10 @@
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## SAVED
 ./seen/out.txt
-***
 ## DONE
 ./seen
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## UNCHANGED
 ./seen/out.txt
-***
 ## DONE
 ./seen

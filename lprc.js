@@ -6,6 +6,6 @@ module.exports = function(Folder, args) {
      args.build = ".";
      args.src = ".";
 
-    require('litpro-jshint')(Folder, args);
+    //require('litpro-jshint')(Folder, args);
 
 };

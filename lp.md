@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:1.2.1; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:2.0.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -204,10 +204,10 @@ event.
                 arr.push.apply(arr, folder.simpleReport());
                 console.log(folder.reportOut());
                 if ( arr.length) {
-                    console.log( "****\n## STILL WAITING\n./" + path.relative(root, build) +
+                    console.log( "## !! STILL WAITING\n./" + path.relative(root, build) +
                         "\n---\n" + arr.join("\n") + "\n\n");
                 } else {
-                    console.log( "***\n## DONE\n./" + path.relative(root, build));
+                    console.log( "## DONE\n./" + path.relative(root, build));
                 }
 
 
@@ -844,7 +844,6 @@ this, we need to be okay with snapshots at any point.
             function (data) {
                 var err = data[0];
                 var files = data[1];
-                doc.augment(files, "arr");
                 callback(err, files);
             }
         );
@@ -1612,7 +1611,7 @@ A travis.yml file for continuous test integration!
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
     deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 1.14.1, mkdirp 0.5.1, 
+        literate-programming-lib 2.0.0, mkdirp 0.5.1, 
         nomnom 1.8.1;
     dev: litpro-jshint 0.3.1, literate-programming-cli-test 0.5.1")
 

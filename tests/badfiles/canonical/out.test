@@ -1,10 +1,8 @@
 error:file not read:nogood.txt INFO: /Users/jostylr/repos/literateprogramming/cli/tests/badfiles/src/nogood.txt,Error: ENOENT: no such file or directory, open '/Users/jostylr/repos/literateprogramming/cli/tests/badfiles/src/nogood.txt'
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## SAVED
 ./build/works.txt
-****
-## STILL WAITING
+## !! STILL WAITING
 ./build
 ---
 NOT SAVED: not.txt AS REQUESTED BY: project.md NEED: not loading

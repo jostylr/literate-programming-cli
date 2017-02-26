@@ -1,18 +1,14 @@
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## SAVED
 ./build/change.txt
-***
 ## DONE
 ./build
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## DIFF NEW FILE
 ### build/new.txt
 `````
 What? A new file?
 
 `````
-***
 ## DONE
 ./build

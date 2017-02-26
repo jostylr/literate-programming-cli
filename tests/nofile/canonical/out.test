@@ -1,7 +1,5 @@
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## SAVED
 ./build/save.txt
-***
 ## DONE
 ./build

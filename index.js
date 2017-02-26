@@ -300,7 +300,6 @@ Folder.async("readdir", function (input, args, callback) {
         function (data) {
             var err = data[0];
             var files = data[1];
-            doc.augment(files, "arr");
             callback(err, files);
         }
     );
@@ -371,10 +370,10 @@ Folder.exit = function () {
             arr.push.apply(arr, folder.simpleReport());
             console.log(folder.reportOut());
             if ( arr.length) {
-                console.log( "****\n## STILL WAITING\n./" + path.relative(root, build) +
+                console.log( "## !! STILL WAITING\n./" + path.relative(root, build) +
                     "\n---\n" + arr.join("\n") + "\n\n");
             } else {
-                console.log( "***\n## DONE\n./" + path.relative(root, build));
+                console.log( "## DONE\n./" + path.relative(root, build));
             }
 
 
@@ -731,7 +730,7 @@ var opts = require("nomnom").
             flag : true,
             help : "version number",
             callback : function () {
-                return "v.1.2.1";
+                return "v.2.0.0";
             }
         },
         scopes: {

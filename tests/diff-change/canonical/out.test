@@ -1,12 +1,9 @@
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## SAVED
 ./build/change.txt
-***
 ## DONE
 ./build
-FOLDER LOGS: 
-===
+# FOLDER LOGS
 ## DIFF DETECTED
 Index: build/change.txt
 ===================================================================
@@ -21,6 +18,5 @@ Index: build/change.txt
 -
 -Yep.
 
-***
 ## DONE
 ./build
