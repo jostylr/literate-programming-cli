@@ -3,6 +3,7 @@ build
 .checksum
 tests
 test.js
-travis.yml
+.travis.yml
 node_modules
 *.md
+lprc.js

@@ -1,4 +1,4 @@
-# [literate-programming-cli](# "version:2.0.0; Basic command line for literate-programming")
+# [literate-programming-cli](# "version:2.1.0; Basic command line for literate-programming")
 
 This is the command line portion of literate-programming. It depends on
 literate-programming-lib. 
@@ -1565,9 +1565,10 @@ The requisite npm package file.
     .checksum
     tests
     test.js
-    travis.yml
+    .travis.yml
     node_modules
     *.md
+    lprc.js
 
 
 ## Travis
@@ -1610,8 +1611,8 @@ A travis.yml file for continuous test integration!
 
 
 by [James Taylor](https://github.com/jostylr "npminfo: jostylr@gmail.com ; 
-    deps: checksum 0.1.1, colors 1.1.2, diff 1.4.0, 
-        literate-programming-lib 2.0.0, mkdirp 0.5.1, 
+    deps: checksum 0.1.1, colors 1.4.0, diff 4.0.2, 
+        literate-programming-lib 2.1.0, mkdirp 0.5.1, 
         nomnom 1.8.1;
-    dev: litpro-jshint 0.3.1, literate-programming-cli-test 0.5.1")
+    dev: litpro-jshint 0.4.0, literate-programming-cli-test 0.5.1")
 
